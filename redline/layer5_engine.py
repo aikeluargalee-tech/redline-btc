@@ -59,8 +59,9 @@ def analyze_enriched(enriched: dict) -> dict:
         vol_regime = "low"
 
     # --- Leverage / OI ---
-    oi_change = enriched.get("oi_change_24h", 0)
+    oi_change = enriched.get("oi_change_24h_pct", 0)
     oi_abs = enriched.get("oi_absolute_usd_billions", 0)
+    oi_trend = enriched.get("oi_trend", "flat")
     if isinstance(oi_change, (int, float)):
         if abs(oi_change) > 3.0:
             leverage = "extreme"
@@ -182,6 +183,7 @@ def analyze_enriched(enriched: dict) -> dict:
         "btc_equity_correlation": corr_r,
         "correlation_signal": correlation_signal,
         "oi_change_24h_pct": oi_change if isinstance(oi_change, (int, float)) else 0.0,
+        "oi_trend": oi_trend,
         "cot_signal": enriched.get("cot_signal", "NEUTRAL"),
         "funding_signal": enriched.get("funding_signal", "NEUTRAL"),
         "taker_buy_ratio": enriched.get("taker_buy_ratio", 0.5),

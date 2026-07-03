@@ -126,6 +126,25 @@ def fetch_enriched() -> dict:
     cot = positioning.get("cot", {})
     cot_signal = cot.get("signal", "NEUTRAL")
 
+    # Derivatives — OI trend
+    deriv = _read_pipeline_file("derivatives.json") or {}
+    oi_history = deriv.get("oi_history", [])
+    oi_trend = deriv.get("oi_trend", "FLAT")
+    oi_change_24h_deriv = deriv.get("oi_change_24h", 0)
+    # Compute OI trend from history if available
+    if len(oi_history) >= 2:
+        recent = [h.get("btc", 0) for h in oi_history[-5:] if isinstance(h, dict)]
+        if len(recent) >= 2:
+            avg_first = sum(recent[:len(recent)//2]) / (len(recent)//2)
+            avg_last = sum(recent[len(recent)//2:]) / (len(recent) - len(recent)//2)
+            if avg_last > avg_first * 1.01:
+                oi_trend_derived = "rising"
+            elif avg_last < avg_first * 0.99:
+                oi_trend_derived = "falling"
+            else:
+                oi_trend_derived = "flat"
+            oi_trend = oi_trend or oi_trend_derived
+
     # Context from packet
     ctx = packet.get("context", {}) if packet else {}
 
@@ -145,6 +164,10 @@ def fetch_enriched() -> dict:
         "fng_value": fng_value,
         "fng_classification": fng_class,
         "cot_signal": cot_signal,
+
+        # Derivatives
+        "oi_trend": oi_trend,
+        "oi_change_24h_pct": oi_change_24h_deriv,
 
         # Liquidity
         "liquidity_verdict": liquidity_verdict,

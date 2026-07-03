@@ -118,7 +118,26 @@ def run_daily_analysis(mock: bool = False) -> dict:
             "can_reactivate": risk_state.can_reactivate,
             "details": risk_state.details,
         }
-        logger.info("Layer 1: %s", risk_state_val)
+
+        # Enriched risk override: check crash/black-swan/liquidity signals
+        enriched_pre = fetch_enriched()
+        enriched_triggers = []
+        if enriched_pre:
+            enriched_signals = check_enriched_risk_signals(enriched_pre)
+            enriched_level = enriched_signals.get("risk_level", "normal")
+            if enriched_level == "critical":
+                enriched_triggers = enriched_signals.get("triggered_signals", [])
+
+        if enriched_triggers:
+            risk_state_val = "RISK_OFF"
+            report["macro_risk"]["state"] = "RISK_OFF"
+            report["macro_risk"]["triggered_by"] = risk_state.triggered_by + enriched_triggers
+            report["macro_risk"]["details"] += f" | Enriched: {', '.join(enriched_triggers)}"
+            report["enriched_override"] = True
+            logger.info("Layer 1: RISK_OFF (enriched override — %s)", enriched_triggers)
+        else:
+            report["enriched_override"] = False
+            logger.info("Layer 1: %s", risk_state_val)
     except Exception as e:
         report["errors"].append(f"Layer 1: {e}")
         logger.error("Layer 1 failed: %s", e)
