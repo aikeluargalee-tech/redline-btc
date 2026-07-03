@@ -1,8 +1,7 @@
-"""Fetch BTC Data Packet
+"""Fetch BTC Data Packet — Layer 4/5 analysis data.
 
-Reads live BTC market data for Layer 4/5 analysis from existing pipeline sources:
-- /tmp/amt_feed.json → AMT, CVD, OI, funding, footprint
-- Pipeline data → volume profile, derivatives, liq clusters
+Reads from the pipeline packet data.json (single source):
+  - ADX, CVD, OI, funding, VP, balance, orderbook, liq clusters
 """
 
 import argparse
@@ -13,124 +12,104 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from scripts.packet_source import fetch_packet
 
-AMT_FEED = "/tmp/amt_feed.json"
-PIPELINE_DATA = "/home/maswilee/projects/pipeline-dashboard-v3/data"
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 
 def fetch_live_data() -> dict:
-    """Fetch live BTC data packet from /tmp/amt_feed.json + pipeline data.
+    """Fetch live BTC data packet from the pipeline packet data.json."""
+    p = fetch_packet()
+    if not p:
+        return fetch_mock_data()
 
-    Returns:
-        Dictionary with market data for Layer 4/5.
-    """
-    result = fetch_mock_data()
+    crit = p.get("critical", {})
+    ctx = p.get("context", {})
+    ref = p.get("reference", {})
 
-    # Read AMT feed
-    try:
-        amt = json.load(open(AMT_FEED))
-        result["btc_price"] = amt.get("btc_spot", result["btc_price"])
+    # Derive MTF direction from amt_mtf text
+    amt_mtf = crit.get("amt_mtf", "")
+    structure_1d = "bearish" if "1D BEARISH" in amt_mtf else ("bullish" if "1D BULLISH" in amt_mtf else "neutral")
+    structure_4h = "bearish" if "4H BEARISH" in amt_mtf else ("bullish" if "4H BULLISH" in amt_mtf else "neutral")
 
-        # 4layer data
-        l4 = amt.get("4layer", {})
-        result["amt_adx"] = l4.get("regime", {}).get("adx", result["amt_adx"])
-        result["amt_regime"] = l4.get("regime", {}).get("mode", result["amt_regime"])
-
-        # Footprint / CVD
-        fp = amt.get("footprint", {})
-        full_candle = fp.get("full_candle")
-        if isinstance(full_candle, dict):
-            cvd = full_candle.get("cvd")
-            if cvd is not None:
-                result["cvd_value"] = cvd
-
-        # Funding + OI
-        funding = amt.get("funding", {})
-        rate = funding.get("rate")
-        if rate is not None:
-            result["funding_rate"] = rate
-        oi = funding.get("oi_current")
-        if oi is not None:
-            result["open_interest"] = oi
-        oi_chg = funding.get("oi_change_24h")
-        if oi_chg is not None:
-            result["oi_change_24h"] = oi_chg
-
-        # Taker volume
-        tv = amt.get("taker_volume", {})
-        result["taker_buy_ratio"] = tv.get("buy_ratio", result["taker_buy_ratio"])
-
-        # Order book
-        ob = amt.get("order_book", {})
-        result["bid_ask_ratio"] = ob.get("bid_ask_ratio", result["bid_ask_ratio"])
-
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        logger.warning(f"AMT feed not available: {e}")
-
-    # Volume profile from pipeline
-    try:
-        vp = json.load(open(f"{PIPELINE_DATA}/playbook_mean_reversion.json"))
-        result["volume_profile_state"] = vp.get("setup", {}).get("context", "neutral")
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
-
-    # Derivatives from pipeline
-    try:
-        deriv = json.load(open(f"{PIPELINE_DATA}/derivatives.json"))
-        if not result.get("funding_rate") and deriv.get("funding_rate"):
-            result["funding_rate"] = deriv["funding_rate"]
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
+    result = {
+        "btc_price": crit.get("btc_price", p.get("header", {}).get("btc_price", 61708)),
+        "amt_adx": crit.get("amt_adx", 0),
+        "amt_mtf": amt_mtf,
+        "cvd_per_tf": crit.get("cvd_per_tf", {}),
+        "oi_per_tf": crit.get("oi_per_tf", {}),
+        "session_cvd": crit.get("session_cvd", 0),
+        "oi_absolute_usd_billions": crit.get("oi_absolute_usd_billions", 0),
+        "taker_ratio_24h": crit.get("taker_ratio_24h", 1.0),
+        "vp_poc": crit.get("vp_poc"),
+        "vp_vah": crit.get("vp_vah"),
+        "vp_val": crit.get("vp_val"),
+        "vp_shape": crit.get("vp_shape", ""),
+        "vp_state": crit.get("vp_state", ""),
+        "balance_state": crit.get("balance_state", ""),
+        "balance_width_pct": crit.get("balance_width_pct", 0),
+        "adx_regime": crit.get("adx_regime", ""),
+        "cvd_24h": ctx.get("cvd_24h", 0),
+        "funding_rate": ctx.get("funding_rate", 0),
+        "long_short_ratio": ctx.get("long_short_ratio", 1.0),
+        "perp_basis_pct": ctx.get("perp_basis_pct", 0),
+        "liq_clusters": ctx.get("liq_clusters", ""),
+        "coinbase_premium": ctx.get("coinbase_premium", 0),
+        "vix": ctx.get("vix", 0),
+        "us10y": ctx.get("us10y", 0),
+        "fng_value": ctx.get("fng_value", 0),
+        "order_book_top5": ctx.get("order_book_top5", {}),
+        "structure_1d": structure_1d,
+        "structure_4h": structure_4h,
+        "sr_1h": ref.get("sr_1h", ""),
+        "sr_1d": ref.get("sr_1d", ""),
+    }
 
     logger.info(
         f"Data packet: BTC=${result['btc_price']:.0f}, "
-        f"ADX={result['amt_adx']:.1f}, "
-        f"CVD={result['cvd_value']:.1f}, "
-        f"OI={result['open_interest']:.0f} BTC"
+        f"ADX={result['amt_adx']}, "
+        f"CVD={result['cvd_24h']}, "
+        f"OI={result['oi_absolute_usd_billions']}B"
     )
     return result
 
 
 def fetch_mock_data() -> dict:
-    """Return default/mock data packet."""
     return {
-        "btc_price": 61708,
-        "amt_adx": 22.0,
-        "amt_regime": "transitional",
-        "cvd_value": 0.0,
-        "cvd_trend": "neutral",
-        "open_interest": 108454,
-        "oi_change_24h": 1753,
-        "funding_rate": 0.00005,
-        "funding_rate_trend": "neutral",
-        "taker_buy_ratio": 0.52,
-        "bid_ask_ratio": 1.02,
-        "volume_profile_state": "acceptance",
-        "liquidation_clusters": [],
-        "timestamp": "",
+        "btc_price": 61708.0,
+        "amt_adx": 41.1,
+        "amt_mtf": "1D BEARISH | 4H NEUTRAL | 1H BEARISH",
+        "cvd_per_tf": {"1D": 1752.83, "4H": 2874.45, "1H": -30.99},
+        "oi_per_tf": {"1D": 0.0246, "4H": -0.0472, "1H": 0.0416},
+        "session_cvd": 474.05,
+        "oi_absolute_usd_billions": 6.63,
+        "taker_ratio_24h": 1.107,
+        "vp_poc": 61667,
+        "vp_vah": 61718,
+        "vp_val": 61612,
+        "vp_shape": "P",
+        "vp_state": "ACCEPTANCE",
+        "balance_state": "DEVELOPING_BALANCE",
+        "balance_width_pct": 3.83,
+        "adx_regime": "TRENDING",
+        "cvd_24h": -163.75,
+        "funding_rate": 0.0001,
+        "long_short_ratio": 1.7617,
+        "perp_basis_pct": -0.0389,
+        "liq_clusters": "Long: $61,700, $61,650 | Short: $61,700, $62,200",
+        "coinbase_premium": -0.1167,
+        "vix": 16.15,
+        "us10y": 4.485,
+        "fng_value": 21,
+        "order_book_top5": {"bids": [], "asks": []},
+        "structure_1d": "bearish",
+        "structure_4h": "neutral",
+        "sr_1h": "",
+        "sr_1d": "",
     }
 
 
-def main():
-    """Main entry point for BTC data packet fetcher."""
-    parser = argparse.ArgumentParser(description="Fetch BTC data packet")
-    parser.add_argument("--mock", action="store_true", help="Use mock data instead of live feeds")
-    parser.add_argument("--output", type=str, default="/tmp/btc_data_packet.json", help="Output file path")
-    args = parser.parse_args()
-
-    logger.info("Fetching BTC data packet...")
-    data = fetch_mock_data() if args.mock else fetch_live_data()
-
-    output_path = Path(args.output)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
-        json.dump(data, f, indent=2)
-
-    logger.info(f"BTC data packet saved to {output_path}")
-    return data
-
-
 if __name__ == "__main__":
-    main()
+    data = fetch_live_data()
+    print(json.dumps(data, indent=2, default=str))
