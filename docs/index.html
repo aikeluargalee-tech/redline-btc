@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redline BTC — Live Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0c12;
+    --card: #11151f;
+    --border: #1e2640;
+    --text: #d0d4e0;
+    --dim: #6b7394;
+    --red: #f04452;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
+    --purple: #a855f7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', monospace;
+    background: var(--bg); color: var(--text); padding: 24px;
+    max-width: 1280px; margin: 0 auto; min-height: 100vh;
+  }
+  .header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 28px;
+    border-bottom: 1px solid var(--border); padding-bottom: 16px;
+  }
+  .header h1 { font-size: 1.4rem; font-weight: 600; color: #fff; }
+  .header .badge {
+    padding: 4px 12px; border-radius: 6px; font-size: .75rem;
+    font-weight: 600;
+  }
+  .badge.operational { background: rgba(34,197,94,.15); color: var(--green); }
+  .badge.degraded { background: rgba(245,158,11,.15); color: var(--amber); }
+  .badge.failed { background: rgba(240,68,82,.15); color: var(--red); }
+  .ts { font-size: .7rem; color: var(--dim); margin-left: auto; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px,1fr)); gap: 16px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; position: relative;
+  }
+  .card .title {
+    font-size: .65rem; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--dim); margin-bottom: 10px; display: flex; align-items: center;
+    justify-content: space-between;
+  }
+  .card .value {
+    font-size: 1.6rem; font-weight: 700; color: #fff; margin-bottom: 4px;
+  }
+  .card .sub { font-size: .75rem; color: var(--dim); }
+  .card .detail { font-size: .72rem; color: var(--dim); margin-top: 8px; line-height: 1.4; }
+
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .dot-blue { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+  .dot-dim { background: var(--dim); }
+
+  .signal-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+  .signal-label { font-size: .7rem; color: var(--dim); min-width: 100px; }
+  .signal-val { font-size: .82rem; font-weight: 500; }
+
+  .checklist-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 6px; }
+  .checklist-item { display: flex; align-items: center; gap: 6px; font-size: .7rem; }
+  .checklist-item .pass { color: var(--green); }
+  .checklist-item .fail { color: var(--red); }
+
+  .error-bar {
+    background: rgba(240,68,82,.1); border: 1px solid rgba(240,68,82,.3);
+    border-radius: 8px; padding: 10px 14px; margin-top: 16px;
+    font-size: .75rem; color: var(--red);
+  }
+  .error-bar span { display: block; margin-top: 2px; }
+
+  .meta { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 20px;
+    font-size: .7rem; color: var(--dim); border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; }
+    .checklist-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ REDLINE BTC</h1>
+  <span class="badge operational" id="statusBadge">—</span>
+  <span class="ts" id="timestamp">—</span>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div id="errors" class="error-bar" style="display:none">
+  ⚠️ <strong>Errors</strong>
+  <span id="errorList"></span>
+</div>
+
+<div class="meta" id="meta"></div>
+
+<script>
+async function loadReport() {
+  try {
+    const r = await fetch('redline_report.json');
+    const d = await r.json();
+    render(d);
+  } catch(e) {
+    document.getElementById('grid').innerHTML =
+      `<div class="card"><div class="title">Status</div>
+       <div class="value" style="color:var(--red)">No Report</div>
+       <div class="detail">Run the pipeline to generate redline_report.json</div></div>`;
+  }
+}
+
+function render(d) {
+  const status = (d.overall_status || 'Unknown').toLowerCase();
+  const badge = document.getElementById('statusBadge');
+  badge.textContent = d.overall_status || 'Unknown';
+  badge.className = 'badge ' + (status === 'operational' ? 'operational' : status === 'degraded' ? 'degraded' : 'failed');
+
+  document.getElementById('timestamp').textContent = '🕐 ' + (d.timestamp || '').replace('T',' ').slice(0,19)+' UTC';
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  // --- Regime ---
+  if (d.regime) {
+    const reg = d.regime.regime || '?';
+    const dot = reg === 'BEAR' ? 'dot-red' : reg === 'BULL' ? 'dot-green' : 'dot-amber';
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">Layer 0 · Regime</div>
+        <div class="value"><span class="status-dot ${dot}"></span>${reg}</div>
+        <div class="sub">${(d.regime.confidence*100).toFixed(0)}% confidence · size ×${d.regime.size_reduction}</div>
+        <div class="detail">${d.regime.details || ''}</div>
+      </div>`;
+  }
+
+  // --- Macro Risk ---
+  if (d.macro_risk) {
+    const state = d.macro_risk.state || '?';
+    const dot = state === 'ON' ? 'dot-green' : state === 'OFF' ? 'dot-red' : 'dot-amber';
+    const triggers = d.macro_risk.triggered_by;
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">Layer 1 · Macro Risk</div>
+        <div class="value"><span class="status-dot ${dot}"></span>${state}</div>
+        <div class="sub">can_reactivate: ${d.macro_risk.can_reactivate || '—'}</div>
+        <div class="detail">${triggers && triggers.length ? 'Triggers: ' + triggers.join(', ') : d.macro_risk.details || ''}</div>
+      </div>`;
+  }
+
+  // --- Macro Short ---
+  if (d.macro_short) {
+    const ms = d.macro_short;
+    const dot = ms.activated ? 'dot-red' : 'dot-dim';
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">L1.5 · Macro Short</div>
+        <div class="value"><span class="status-dot ${dot}"></span>${ms.activated ? 'ACTIVATED' : 'Inactive'}</div>
+        <div class="detail">${ms.details || ms.status || ''}</div>
+      </div>`;
+  }
+
+  // --- Positioning (Layer 2) ---
+  if (d.positioning) {
+    const p = d.positioning;
+    const dot = p.action === 'accumulate' ? 'dot-green' : p.action === 'hold' ? 'dot-amber' : 'dot-dim';
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">Layer 2 · Positioning</div>
+        <div class="value"><span class="status-dot ${dot}"></span>${(p.action||'—').toUpperCase()}</div>
+        <div class="sub">${p.tranche ? 'Tranche: ' + p.tranche : ''}</div>
+        <div class="detail">${p.details || ''}</div>
+      </div>`;
+  }
+
+  // --- Swing (Layer 3) ---
+  if (d.swing) {
+    const sw = d.swing;
+    const dir = sw.direction || 'NONE';
+    const dot = sw.entry_allowed ? 'dot-green' : 'dot-dim';
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">Layer 3 · Swing <span style="font-weight:400">${sw.allocation_pct*100}% alloc</span></div>
+        <div class="value"><span class="status-dot ${dot}"></span>${dir} ${sw.entry_allowed ? '✅' : '🚫'}</div>
+        <div class="detail">${sw.details || ''}</div>
+      </div>`;
+  }
+
+  // --- Intraday (Layer 4) ---
+  if (d.intraday) {
+    const id = d.intraday;
+    const dir = id.direction || 'NONE';
+    const ttype = id.trade_type || '—';
+    const dot = id.entry_allowed ? 'dot-green' : 'dot-dim';
+    const passed = id.checklist_results ? Object.values(id.checklist_results).filter(Boolean).length : 0;
+    const total = id.checklist_results ? Object.keys(id.checklist_results).length : 0;
+    let checklistHTML = '';
+    if (id.checklist_results) {
+      checklistHTML = '<div class="checklist-grid">';
+      for (const [k, v] of Object.entries(id.checklist_results)) {
+        checklistHTML += `<div class="checklist-item"><span class="${v?'pass':'fail'}">${v?'✓':'✗'}</span>${k}</div>`;
+      }
+      checklistHTML += '</div>';
+    }
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">Layer 4 · Intraday <span style="font-weight:400">${id.allocation_pct*100}% alloc</span></div>
+        <div class="value"><span class="status-dot ${dot}"></span>${dir} ${ttype.replace('type_','T')}</div>
+        <div class="sub">${passed}/${total} checklist</div>
+        <div class="detail">${id.details || ''}</div>
+        ${checklistHTML}
+      </div>`;
+  }
+
+  // --- Market Structure (Layer 5) ---
+  if (d.market_structure && d.market_structure.momentum) {
+    const ms = d.market_structure;
+    const mDot = ms.momentum === 'bullish' ? 'dot-green' : ms.momentum === 'bearish' ? 'dot-red' : 'dot-amber';
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">Layer 5 · Market Structure</div>
+        <div class="value"><span class="status-dot ${mDot}"></span>${ms.momentum.toUpperCase()}</div>
+        <div class="sub">leverage: ${ms.leverage} · funding: ${ms.funding_bias}</div>
+        <div class="detail">VP: ${ms.volume_profile} · liq_risk: ${ms.liquidation_risk}</div>
+      </div>`;
+  }
+
+  // --- Conflict Resolution ---
+  if (d.conflict_resolution) {
+    const cr = d.conflict_resolution;
+    const cDot = cr.action === 'allow' ? 'dot-green' : cr.action === 'reduce_size' ? 'dot-amber' : cr.action === 'block' ? 'dot-red' : 'dot-amber';
+    grid.innerHTML += `
+      <div class="card">
+        <div class="title">Conflict Resolution</div>
+        <div class="value"><span class="status-dot ${cDot}"></span>${cr.action.toUpperCase()}</div>
+        <div class="sub">size ×${cr.size_multiplier} · trade: ${cr.allowed_trade_type}</div>
+        <div class="detail">${cr.details || ''}</div>
+      </div>`;
+  }
+
+  // --- Sizing ---
+  const sizingCards = [];
+  for (const [layer, sz] of Object.entries(d.sizing || {})) {
+    if (sz.status === 'No entry signal') continue;
+    sizingCards.push(`
+      <div class="card">
+        <div class="title">Sizing · ${layer}</div>
+        <div class="value">$${(sz.position_size_usd||0).toLocaleString()}</div>
+        <div class="sub">${(sz.position_size_btc||0).toFixed(6)} BTC · ${(sz.risk_pct||0).toFixed(2)}% risk · ${(sz.leverage||1).toFixed(1)}x</div>
+        <div class="detail">${sz.details || ''}</div>
+      </div>`);
+  }
+  grid.innerHTML += sizingCards.join('');
+
+  // --- Summary card ---
+  if (d.summary) {
+    const s = d.summary;
+    grid.innerHTML += `
+      <div class="card" style="grid-column:span min(2,var(--cols,1))">
+        <div class="title">Summary</div>
+        <div class="signal-row"><span class="signal-label">Regime</span><span class="signal-val">${s.regime}</span></div>
+        <div class="signal-row"><span class="signal-label">Risk State</span><span class="signal-val">${s.risk_state}</span></div>
+        <div class="signal-row"><span class="signal-label">Swing</span><span class="signal-val">${s.swing_direction} ${s.swing_allowed ? '✅' : '🚫'}</span></div>
+        <div class="signal-row"><span class="signal-label">Intraday</span><span class="signal-val">${s.intraday_direction} ${s.intraday_allowed ? '✅' : '🚫'}</span></div>
+        <div class="signal-row"><span class="signal-label">Conflict</span><span class="signal-val">${s.conflict_action}</span></div>
+        <div class="signal-row"><span class="signal-label">Errors</span><span class="signal-val" style="color:${s.errors>0?'var(--red)':'var(--green)'}">${s.errors}</span></div>
+      </div>`;
+  }
+
+  // --- Errors ---
+  if (d.errors && d.errors.length > 0) {
+    const eb = document.getElementById('errors');
+    eb.style.display = 'block';
+    document.getElementById('errorList').innerHTML = d.errors.map(e => `• ${e}`).join('<br>');
+  }
+
+  // --- Meta ---
+  document.getElementById('meta').innerHTML =
+    `⚡ REDLINE BTC v2.0 · ` +
+    `Pipeline: ${d.overall_status} · ` +
+    `Repo: <a href="https://github.com/aikeluargalee-tech/redline-btc" style="color:var(--blue);text-decoration:none" target="_blank">aikeluargalee-tech/redline-btc</a>`;
+}
+
+loadReport();
+</script>
+</body>
+</html>
