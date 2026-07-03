@@ -32,11 +32,12 @@ from redline.layer3_swing import SwingInputs, assess_swing_trade, SwingDirection
 from redline.layer4_intraday import (
     IntradayInputs, IntradayDirection, TradeType, assess_intraday_trade,
 )
-from redline.layer5_engine import analyze_market_structure, load_data_packet, get_mock_data_packet
+from redline.layer5_engine import analyze_enriched, check_enriched_risk_signals
 from redline.conflict_resolver import ConflictInput, resolve_conflicts
 from redline.sizing import SizingInput, calculate_position_size, check_loss_limit
 from redline.checklist import pre_session_checklist
 
+from scripts.packet_source import fetch_enriched
 from scripts.fetch_layer0 import fetch_mock_data as fetch_l0_mock, fetch_live_data as fetch_l0_live
 from scripts.fetch_layer1 import fetch_mock_data as fetch_l1_mock, fetch_live_data as fetch_l1_live
 from scripts.fetch_data_packet import fetch_mock_data as fetch_dp_mock, fetch_live_data as fetch_dp_live
@@ -254,22 +255,19 @@ def run_daily_analysis(mock: bool = False) -> dict:
         report["errors"].append(f"Layer 4: {e}")
         logger.error("Layer 4 failed: %s", e)
 
-    # ----- Layer 5 — Market Structure Engine -----
+    # ----- Layer 5 — Enriched Market Structure -----
     try:
-        dp = load_data_packet() if not mock else get_mock_data_packet()
-        if dp:
-            analysis = analyze_market_structure(dp)
-            report["market_structure"] = {
-                "momentum": analysis["momentum"],
-                "leverage": analysis["leverage"],
-                "funding_bias": analysis["funding_bias"],
-                "liquidation_risk": analysis["liquidation_risk"],
-                "volume_profile": analysis["volume_profile"],
-            }
-            logger.info("Layer 5: momentum=%s, leverage=%s",
-                         analysis["momentum"], analysis["leverage"])
+        enriched = fetch_enriched()
+        if enriched:
+            analysis = analyze_enriched(enriched)
+            enriched_risk = check_enriched_risk_signals(enriched)
+            report["market_structure"] = analysis
+            report["enriched_risk"] = enriched_risk
+            logger.info("Layer 5: momentum=%s, leverage=%s, vol=%s, sent=%s",
+                         analysis["momentum"], analysis["leverage"],
+                         analysis["volatility_regime"], analysis["sentiment"])
         else:
-            report["market_structure"] = {"status": "No data packet available"}
+            report["market_structure"] = {"status": "No enriched data available"}
     except Exception as e:
         report["errors"].append(f"Layer 5: {e}")
         logger.error("Layer 5 failed: %s", e)
