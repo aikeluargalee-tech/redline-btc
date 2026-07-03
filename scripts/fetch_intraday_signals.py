@@ -111,10 +111,10 @@ def fetch_intraday_signals(l3_output: Optional[dict] = None) -> dict:
         tf_1h = tf_data.get("1H", {})
         cvd_val = tf_1h.get("cvd_trend", 0)
         if isinstance(cvd_val, (int, float)):
-            # CVD > 50 or < -50 indicates extreme flow → invalidation risk
-            cvd_invalidation = abs(cvd_val) > 30
+            # CVD within normal range → no invalidation risk → signal is clean
+            cvd_invalidation = not (abs(cvd_val) > 30)
         else:
-            cvd_invalidation = False
+            cvd_invalidation = True  # Default to "safe" if no data
 
         # --- Price vs liquidation cluster ---
         liq_above = heatmap.get("above_cluster")

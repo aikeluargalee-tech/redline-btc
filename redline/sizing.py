@@ -100,10 +100,11 @@ def calculate_position_size(
         )
 
     position_size_usd = (final_risk / price_diff) * inputs.entry_price
+    actual_risk_usd = position_size_usd / inputs.entry_price * price_diff if inputs.entry_price > 0 else 0
     position_size_usd = min(position_size_usd, max_position)
 
-    position_size_btc = position_size_usd / inputs.entry_price
-    risk_pct = (final_risk / inputs.account_balance) * 100
+    position_size_btc = position_size_usd / inputs.entry_price if inputs.entry_price > 0 else 0
+    risk_pct = (actual_risk_usd / inputs.account_balance) * 100 if inputs.account_balance > 0 else 0
     leverage = position_size_usd / inputs.account_balance if inputs.account_balance > 0 else 1.0
 
     details = (
@@ -117,7 +118,7 @@ def calculate_position_size(
     return SizingOutput(
         position_size_usd=position_size_usd,
         position_size_btc=position_size_btc,
-        risk_amount_usd=final_risk,
+        risk_amount_usd=actual_risk_usd,
         risk_pct=risk_pct,
         leverage=leverage,
         details=details,

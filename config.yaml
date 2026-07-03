@@ -31,7 +31,7 @@ layer1:
     usdjpy_spike_pct: 2.0
   risk_on_criteria:
     mstr_above_sessions: 2.0
-    mstr_threshold: 2.0
+    mstr_threshold: 82.0
     vix_below_sessions: 2.0
     vix_threshold: 22.0
     us10y_below: 4.55
@@ -44,9 +44,9 @@ layer1_5:
     requires_layer1_off: true
     btc_below_structure: true
   targets:
-    tp1: 8872
-    tp2: 5000
-    tp3: 8000
+    tp1: 58872
+    tp2: 55000
+    tp3: 48000
   stop_loss:
     above_trigger_level: true
 

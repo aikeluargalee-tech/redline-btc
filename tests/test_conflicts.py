@@ -78,7 +78,7 @@ def test_losing_trade_no_swing():
 
 
 def test_capital_isolation_l4():
-    """Capital isolation: L4 exceeding daily loss should block."""
-    allowed, remaining = check_capital_isolation("layer4", -6.0)
-    assert allowed is not None  # depends on config
-    assert remaining >= 0.0
+    """Loss within daily limit should allow trading."""
+    allowed, remaining = check_capital_isolation("layer4", -0.005)
+    assert allowed is True
+    assert remaining > 0.0

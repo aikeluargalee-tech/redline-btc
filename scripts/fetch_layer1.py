@@ -81,7 +81,15 @@ def fetch_live_data() -> dict:
             "https://query1.finance.yahoo.com/v8/finance/chart/USDJPY=X",
             headers=YAHOO_HEADERS, timeout=10
         )
-        r.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]
+        jpy_price = r.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]
+        # Calculate single-session change using the day's open as baseline
+        quotes = r.json()["chart"]["result"][0].get("indicators", {}).get("quote", [{}])
+        if quotes and len(quotes[0].get("open", [])) > 0:
+            opens = [o for o in quotes[0]["open"] if o is not None]
+            if len(opens) > 0:
+                open_price = opens[0]
+                result["usdjpy_change_pct"] = ((jpy_price - open_price) / open_price) * 100
+        result["_usdjpy_price"] = jpy_price
     except Exception as e:
         logger.warning(f"USD/JPY fetch failed: {e}")
 

@@ -56,15 +56,22 @@ def test_edge_case_zero_price_diff():
 
 
 def test_loss_limit_l4():
-    """Layer 4 daily loss limit should be checked."""
-    can_trade, remaining = check_loss_limit("layer4", -3.0)
-    assert isinstance(can_trade, bool)
-    assert remaining >= 0.0
+    """Loss limit > daily_max should block (config: 0.01 = 1%)."""
+    can_trade, remaining = check_loss_limit("layer4", -0.05)
+    assert can_trade is False
+    assert remaining == 0.0
+
+
+def test_loss_limit_at_boundary():
+    """Loss at exact boundary should block if at limit."""
+    can_trade, remaining = check_loss_limit("layer4", -0.01)
+    assert can_trade is False
+    assert remaining == 0.0
 
 
 def test_loss_limit_exceeded():
     """Large daily loss should block further trading."""
-    can_trade, _ = check_loss_limit("layer4", -15.0)
+    can_trade, _ = check_loss_limit("layer4", -0.15)
     assert can_trade is False
 
 

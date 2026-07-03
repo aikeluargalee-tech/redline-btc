@@ -125,8 +125,8 @@ def check_risk_on_criteria(
     on_cfg = l1["risk_on_criteria"]
 
     criteria = {
-        "mstr_above_2_sessions": triggers.mstr_sessions_below >= on_cfg["mstr_above_sessions"] and triggers.mstr_close > on_cfg["mstr_threshold"],
-        "vix_below_2_sessions": triggers.vix_sessions_above >= on_cfg["vix_below_sessions"] and triggers.vix_current < on_cfg["vix_threshold"],
+        "mstr_above_2_sessions": triggers.mstr_sessions_below == 0 and triggers.mstr_close > on_cfg["mstr_threshold"],
+        "vix_below_2_sessions": triggers.vix_sessions_above == 0 and triggers.vix_current < on_cfg["vix_threshold"],
         "us10y_below_threshold": triggers.us10y_current < on_cfg["us10y_below"],
         "usdjpy_stable_48h": triggers.usdjpy_stable_hours >= on_cfg["usdjpy_stable_hours"],
         "btc_above_structure_low": triggers.btc_above_structure_low == on_cfg["btc_structure_low_required"],
