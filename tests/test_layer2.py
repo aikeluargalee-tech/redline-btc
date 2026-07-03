@@ -68,8 +68,8 @@ class TestPositioningLeverage:
         assert check_leverage_allowed(Regime.BEAR) is False
 
     def test_leverage_enabled_in_bull(self):
-        # Config bear_regime.leverage_max=1.0 means spot only
-        assert check_leverage_allowed(Regime.BULL) is False  # Config limits to 1x
+        # Bull regime has leverage_max=2.0, so leverage is allowed
+        assert check_leverage_allowed(Regime.BULL) is True
 
     def test_stops_disabled(self):
         """Cycle positions should have no stops."""

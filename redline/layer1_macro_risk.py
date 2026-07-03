@@ -87,8 +87,8 @@ def check_risk_off_triggers(
         triggered.append(f"MSTR close {triggers.mstr_close:.2f} < {off_cfg['mstr_daily_close_below']}")
 
     # Trigger 2: VIX sustained above threshold
-    if triggers.vix_current > off_cfg["vix_sustained_above"]:
-        triggered.append(f"VIX {triggers.vix_current:.2f} > {off_cfg['vix_sustained_above']}")
+    if triggers.vix_current > off_cfg["vix_sustained_above"] and triggers.vix_sessions_above >= off_cfg["vix_sustained_sessions"]:
+        triggered.append(f"VIX {triggers.vix_current:.2f} > {off_cfg['vix_sustained_above']} for {triggers.vix_sessions_above} sessions")
 
     # Trigger 3: US10Y above threshold
     if triggers.us10y_current > off_cfg["us10y_above"]:

@@ -137,6 +137,9 @@ def resolve_conflicts(
     # Rule 5: Capital isolation (checked in sizing layer)
     # This is enforced by the sizing module, not here
 
+    # Apply floor to prevent excessive reduction
+    size_multiplier = max(size_multiplier, 0.3)
+
     # Determine final action
     if action == ConflictAction.BLOCK:
         details = f"BLOCKED: {'; '.join(reasons)}"

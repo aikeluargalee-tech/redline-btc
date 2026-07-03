@@ -5,7 +5,7 @@ Emergency short mode that activates ONLY when Layer 1 = Risk OFF.
 Does NOT run concurrently with normal trading operations.
 
 Entry: Layer 1 triggered + BTC below key structure
-TP: 8872 → 5K → 8K (partial closes)
+TP: $58,872 → $55K → $48K (partial closes)
 SL: Above trigger event level
 """
 

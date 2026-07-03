@@ -100,8 +100,8 @@ def calculate_position_size(
         )
 
     position_size_usd = (final_risk / price_diff) * inputs.entry_price
-    actual_risk_usd = position_size_usd / inputs.entry_price * price_diff if inputs.entry_price > 0 else 0
     position_size_usd = min(position_size_usd, max_position)
+    actual_risk_usd = position_size_usd / inputs.entry_price * price_diff if inputs.entry_price > 0 else 0
 
     position_size_btc = position_size_usd / inputs.entry_price if inputs.entry_price > 0 else 0
     risk_pct = (actual_risk_usd / inputs.account_balance) * 100 if inputs.account_balance > 0 else 0

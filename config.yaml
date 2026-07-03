@@ -27,6 +27,7 @@ layer1:
   risk_off_triggers:
     mstr_daily_close_below: 75.0
     vix_sustained_above: 25.0
+    vix_sustained_sessions: 2
     us10y_above: 4.60
     usdjpy_spike_pct: 2.0
   risk_on_criteria:
@@ -67,6 +68,10 @@ layer2:
         range: [48000, 50000]
         allocation_pct: 0.34
     stops_enabled: false  # Cycle positions
+  bull_regime:
+    leverage_max: 2.0
+  transitional_regime:
+    leverage_max: 1.5
 
 # Layer 3 - Swing Trading
 layer3:
@@ -152,7 +157,7 @@ data_sources:
 current_state:
   regime: "BEAR"
   layer1_risk: "OFF"
-  btc_price: 42000
+  btc_price: 61708
   cycle_score: 25.2
   mvrv_z: 0.25
   etf_flow_weekly: -1.5

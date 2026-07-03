@@ -161,6 +161,8 @@ def check_leverage_allowed(regime: Regime, config: Optional[dict] = None) -> boo
     """Check if leverage is allowed for Layer 2 positions.
 
     In bear regime: spot only (1x), no leveraged longs.
+    In bull regime: leverage up to 2x allowed.
+    In transitional regime: leverage up to 1.5x allowed.
 
     Args:
         regime: Current market regime.
@@ -173,7 +175,8 @@ def check_leverage_allowed(regime: Regime, config: Optional[dict] = None) -> boo
         config = load_config()
 
     l2 = config["layer2"]
-    return l2["bear_regime"]["leverage_max"] > 1.0
+    regime_key = f"{regime.value.lower()}_regime"
+    return l2[regime_key]["leverage_max"] > 1.0
 
 
 def stops_enabled(config: Optional[dict] = None) -> bool:

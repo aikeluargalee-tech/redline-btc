@@ -48,11 +48,19 @@ def test_mstr_trigger():
 
 
 def test_vix_trigger():
-    """VIX > 25 fires trigger 2."""
-    triggers = make_triggers(vix_current=30.0)
+    """VIX > 25 sustained for >= 2 sessions fires trigger 2."""
+    triggers = make_triggers(vix_current=30.0, vix_sessions_above=2)
     should_off, reasons = check_risk_off_triggers(triggers)
     assert should_off is True
     assert any("VIX" in r for r in reasons)
+
+
+def test_vix_not_sustained_does_not_trigger():
+    """VIX > 25 but not sustained for enough sessions does NOT fire."""
+    triggers = make_triggers(vix_current=30.0, vix_sessions_above=1)
+    should_off, reasons = check_risk_off_triggers(triggers)
+    assert should_off is False
+    assert not any("VIX" in r for r in reasons)
 
 
 def test_us10y_trigger():
