@@ -58,23 +58,36 @@ def run_daily_analysis(mock: bool = False) -> dict:
         l1_data = fetch_l1_live()
         dp_data = fetch_dp_live()
 
-    # Layer 0 — Regime
+    # Layer 0 — Regime (only pass expected fields)
     try:
-        regime_input = RegimeInputs(**l0_data)
-        report["regime"] = classify_regime(regime_input)
+        l0_fields = {"mvrv_z_score", "cycle_composite", "options_skew_30d",
+                     "etf_flows_weekly", "coinbase_premium_trend"}
+        regime_input = RegimeInputs(**{k: v for k, v in l0_data.items() if k in l0_fields})
+        regime_output = classify_regime(regime_input)
+        report["regime"] = {
+            "regime": regime_output.regime.value,
+            "confidence": regime_output.confidence,
+            "leverage_multiplier": regime_output.leverage_multiplier,
+            "size_reduction": regime_output.size_reduction,
+            "details": regime_output.details,
+        }
         logger.info("Layer 0: %s", report["regime"]["regime"])
     except Exception as e:
         report["errors"].append(f"Layer 0: {e}")
         logger.error("Layer 0 failed: %s", e)
 
-    # Layer 1 — Macro Risk
+    # Layer 1 — Macro Risk (filter to expected fields)
     try:
-        trigger_input = MacroTriggers(**l1_data)
+        l1_fields = {"mstr_close", "vix_current", "us10y_current", "usdjpy_change_pct",
+                     "boj_verbal_response", "mstr_sessions_below", "vix_sessions_above",
+                     "usdjpy_stable_hours", "btc_above_structure_low"}
+        trigger_input = MacroTriggers(**{k: v for k, v in l1_data.items() if k in l1_fields})
         risk_state = assess_macro_risk(trigger_input)
         report["macro_risk"] = {
             "state": risk_state.state.value,
-            "triggers_fired": risk_state.triggers_fired,
-            "risk_on_cleared": risk_state.risk_on_cleared,
+            "triggered_by": risk_state.triggered_by,
+            "can_reactivate": risk_state.can_reactivate,
+            "details": risk_state.details,
         }
         logger.info("Layer 1: %s", risk_state.state.value)
     except Exception as e:
@@ -85,7 +98,7 @@ def run_daily_analysis(mock: bool = False) -> dict:
     if report["macro_risk"] and report["macro_risk"]["state"] == "RISK_OFF":
         try:
             ms_input = MacroShortInput(
-                btc_price=l1_data.get("btc_price", 0),
+                btc_price=dp_data.get("btc_price", l1_data.get("btc_price", 62000)),
                 layer1_triggered=True,
             )
             report["macro_short"] = assess_macro_short(ms_input)
@@ -98,7 +111,15 @@ def run_daily_analysis(mock: bool = False) -> dict:
 
     # Layer 2 — Positioning
     try:
-        pos_input = PositioningInput(**l0_data)
+        regime_val = report.get("regime", {}).get("regime", "TRANSITIONAL")
+        from redline.layer0_regime import Regime
+        pos_input = PositioningInput(
+            regime=Regime(regime_val),
+            btc_price=dp_data.get("btc_price", l1_data.get("btc_price", 62000)),
+            total_capital=100_000,
+            current_position=0.0,
+            tranches_filled=[],
+        )
         report["positioning"] = assess_positioning(pos_input)
         logger.info("Layer 2: assessment complete")
     except Exception as e:

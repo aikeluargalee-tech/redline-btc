@@ -41,20 +41,48 @@ def fetch_mock_data() -> dict:
 
 
 def fetch_live_data() -> dict:
-    """Fetch live Layer 0 data from APIs.
+    """Fetch live Layer 0 data from the existing pipeline data files.
 
-    Note: This is a stub implementation. In production, this would call:
-    - CoinGecko API for price data
-    - Glassnode-style API for MVRV-Z
-    - Options data provider for skew
-    - ETF flow data provider
-
-    Returns:
-        Dictionary with on-chain metrics.
+    Sources:
+    - /home/.../pipeline-dashboard-v3/data/cycle.json → MVRV-Z, composite_score
+    - /home/.../pipeline-dashboard-v3/data/macro.json → ETF flows
+    - /tmp/amt_feed.json → Coinbase premium (coinbase_premium field)
     """
-    # Stub: In production, replace with actual API calls
-    logger.warning("Live data fetch not implemented. Using mock data.")
-    return fetch_mock_data()
+    DATA_DIR = "/home/maswilee/projects/pipeline-dashboard-v3/data"
+
+    cycle = json.load(open(f"{DATA_DIR}/cycle.json"))
+    macro = json.load(open(f"{DATA_DIR}/macro.json"))
+
+    result = {
+        "mvrv_z_score": cycle.get("mvrv_z", 0.25),
+        "cycle_composite": cycle.get("composite_score", 50.0),
+        "options_skew_30d": -8.5,  # fallback — not in pipeline data
+        "etf_flows_weekly": 0.0,
+        "coinbase_premium_trend": 0.0,
+        "timestamp": cycle.get("distribution", {}).get("timestamp", "unknown"),
+    }
+
+    # ETF flows from macro.json
+    etf = macro.get("etf_flow", {})
+    weekly = etf.get("weekly_net")
+    if weekly is not None:
+        result["etf_flows_weekly"] = weekly / 1000.0  # convert $M to $B
+
+    # Coinbase premium from amt_feed.json if available
+    try:
+        amt = json.load(open("/tmp/amt_feed.json"))
+        cp = amt.get("coinbase_premium")
+        if cp is not None:
+            result["coinbase_premium_trend"] = cp
+    except (FileNotFoundError, json.JSONDecodeError):
+        logger.warning("amt_feed.json not available — coinbase premium set to 0")
+
+    logger.info(
+        f"Layer 0: MVRV-Z={result['mvrv_z_score']:.3f}, "
+        f"Cycle={result['cycle_composite']:.1f}, "
+        f"ETF={result['etf_flows_weekly']:+.2f}B"
+    )
+    return result
 
 
 def main():
