@@ -18,6 +18,15 @@ import yaml
 
 CONFIG_PATH = "config.yaml"
 
+# TODO: These thresholds are pending migration to config.yaml
+# Currently hardcoded as fallback defaults for options skew and coinbase premium signals
+FALLBACK_DEFAULTS = {
+    "options_skew_bull_threshold": 5.0,    # Positive skew = bullish put buying
+    "options_skew_bear_threshold": -5.0,   # Negative skew = bearish call buying
+    "coinbase_premium_bull_threshold": 0.5,  # Positive premium = US buying pressure
+    "coinbase_premium_bear_threshold": -0.5,  # Negative premium = US selling pressure
+}
+
 
 def load_config(config_path: str = CONFIG_PATH) -> dict:
     """Load configuration from YAML file."""

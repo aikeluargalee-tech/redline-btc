@@ -58,13 +58,13 @@ layer2:
     leverage_max: 1.0  # Spot only
     accumulation_tranches:
       t1:
-        range: [8000, 60000]
+        range: [58000, 60000]
         allocation_pct: 0.33
       t2:
-        range: [2000, 55000]
+        range: [52000, 55000]
         allocation_pct: 0.33
       t3:
-        range: [0, 8000]
+        range: [48000, 50000]
         allocation_pct: 0.34
     stops_enabled: false  # Cycle positions
 

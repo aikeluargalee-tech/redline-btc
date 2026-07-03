@@ -169,6 +169,9 @@ def run_daily_analysis(mock: bool = False) -> dict:
     else:
         report["macro_short"] = {"status": "inactive — Layer 1 is Risk ON"}
 
+    # Flag to skip L3/L4 if macro short is activated
+    macro_short_activated = report.get("macro_short", {}).get("activated", False)
+
     # ----- Layer 2 — Positioning (spot accumulation) -----
     btc_price = 62000.0  # fallback
     try:
@@ -196,83 +199,89 @@ def run_daily_analysis(mock: bool = False) -> dict:
 
     # ----- Layer 3 — Swing Trade Signals -----
     swing_out = None
-    try:
-        swing_input = SwingInputs(
-            regime=Regime(regime_val),
-            btc_price=l3_data.get("btc_price", btc_price),
-            structure_4h=l3_data["structure_4h"],
-            structure_1d=l3_data["structure_1d"],
-            daily_sr_level=l3_data["daily_sr_level"],
-            adx_value=l3_data["adx_value"],
-            cvd_trend=l3_data["cvd_trend"],
-            daily_oversold=l3_data["daily_oversold"],
-            mvrv_z_score=l3_data["mvrv_z_score"],
-            at_major_support=l3_data["at_major_support"],
-        )
-        swing_out = assess_swing_trade(swing_input)
-        report["swing"] = {
-            "direction": swing_out.direction.value,
-            "entry_allowed": swing_out.entry_allowed,
-            "reasons": swing_out.reasons,
-            "details": swing_out.details,
-            "allocation_pct": swing_out.allocation_pct,
-        }
-        logger.info("Layer 3: %s %s",
-                     swing_out.direction.value,
-                     "ALLOWED" if swing_out.entry_allowed else "BLOCKED")
-    except Exception as e:
-        report["errors"].append(f"Layer 3: {e}")
-        logger.error("Layer 3 failed: %s", e)
+    if not macro_short_activated:
+        try:
+            swing_input = SwingInputs(
+                regime=Regime(regime_val),
+                btc_price=l3_data.get("btc_price", btc_price),
+                structure_4h=l3_data["structure_4h"],
+                structure_1d=l3_data["structure_1d"],
+                daily_sr_level=l3_data["daily_sr_level"],
+                adx_value=l3_data["adx_value"],
+                cvd_trend=l3_data["cvd_trend"],
+                daily_oversold=l3_data["daily_oversold"],
+                mvrv_z_score=l3_data["mvrv_z_score"],
+                at_major_support=l3_data["at_major_support"],
+            )
+            swing_out = assess_swing_trade(swing_input)
+            report["swing"] = {
+                "direction": swing_out.direction.value,
+                "entry_allowed": swing_out.entry_allowed,
+                "reasons": swing_out.reasons,
+                "details": swing_out.details,
+                "allocation_pct": swing_out.allocation_pct,
+            }
+            logger.info("Layer 3: %s %s",
+                         swing_out.direction.value,
+                         "ALLOWED" if swing_out.entry_allowed else "BLOCKED")
+        except Exception as e:
+            report["errors"].append(f"Layer 3: {e}")
+            logger.error("Layer 3 failed: %s", e)
+    else:
+        logger.info("Layer 3: Skipped — macro short activated")
 
     # ----- Layer 4 — Intraday Trade Signals -----
     l4_out = None
     direction_enum = IntradayDirection.NONE
     trade_type_enum = TradeType.TYPE_C
-    try:
-        l4_data_with_l3 = fetch_intraday_signals(l3_output=report.get("swing"))
-        direction_enum = {
-            "LONG": IntradayDirection.LONG,
-            "SHORT": IntradayDirection.SHORT,
-            "NONE": IntradayDirection.NONE,
-        }.get(l4_data_with_l3["direction"], IntradayDirection.NONE)
+    if not macro_short_activated:
+        try:
+            l4_data_with_l3 = fetch_intraday_signals(l3_output=report.get("swing"))
+            direction_enum = {
+                "LONG": IntradayDirection.LONG,
+                "SHORT": IntradayDirection.SHORT,
+                "NONE": IntradayDirection.NONE,
+            }.get(l4_data_with_l3["direction"], IntradayDirection.NONE)
 
-        trade_type_enum = {
-            "type_a": TradeType.TYPE_A,
-            "type_b": TradeType.TYPE_B,
-            "type_c": TradeType.TYPE_C,
-        }.get(l4_data_with_l3["trade_type"], TradeType.TYPE_C)
+            trade_type_enum = {
+                "type_a": TradeType.TYPE_A,
+                "type_b": TradeType.TYPE_B,
+                "type_c": TradeType.TYPE_C,
+            }.get(l4_data_with_l3["trade_type"], TradeType.TYPE_C)
 
-        l4_input = IntradayInputs(
-            regime=Regime(regime_val),
-            direction=direction_enum,
-            trade_type=trade_type_enum,
-            adx_direction=l4_data_with_l3["adx_direction"],
-            mtf_alignment=l4_data_with_l3["mtf_alignment"],
-            cvd_invalidation=l4_data_with_l3["cvd_invalidation"],
-            price_vs_liq_cluster=l4_data_with_l3["price_vs_liq_cluster"],
-            vp_state=l4_data_with_l3["vp_state"],
-            session_context=l4_data_with_l3["session_context"],
-            layer3_alignment=l4_data_with_l3["layer3_alignment"],
-        )
-        l4_out = assess_intraday_trade(l4_input)
-        report["intraday"] = {
-            "direction": l4_data_with_l3["direction"],
-            "trade_type": l4_data_with_l3["trade_type"],
-            "entry_allowed": l4_out.entry_allowed,
-            "checklist_results": l4_out.checklist_results,
-            "trade_type_allowed": l4_out.trade_type_allowed,
-            "reasons": l4_out.reasons,
-            "details": l4_out.details,
-            "allocation_pct": l4_out.allocation_pct,
-        }
-        logger.info("Layer 4: %s %s (checklist %d/%s)",
-                     l4_data_with_l3["direction"],
-                     "ALLOWED" if l4_out.entry_allowed else "BLOCKED",
-                     sum(l4_out.checklist_results.values()),
-                     len(l4_out.checklist_results))
-    except Exception as e:
-        report["errors"].append(f"Layer 4: {e}")
-        logger.error("Layer 4 failed: %s", e)
+            l4_input = IntradayInputs(
+                regime=Regime(regime_val),
+                direction=direction_enum,
+                trade_type=trade_type_enum,
+                adx_direction=l4_data_with_l3["adx_direction"],
+                mtf_alignment=l4_data_with_l3["mtf_alignment"],
+                cvd_invalidation=l4_data_with_l3["cvd_invalidation"],
+                price_vs_liq_cluster=l4_data_with_l3["price_vs_liq_cluster"],
+                vp_state=l4_data_with_l3["vp_state"],
+                session_context=l4_data_with_l3["session_context"],
+                layer3_alignment=l4_data_with_l3["layer3_alignment"],
+            )
+            l4_out = assess_intraday_trade(l4_input)
+            report["intraday"] = {
+                "direction": l4_data_with_l3["direction"],
+                "trade_type": l4_data_with_l3["trade_type"],
+                "entry_allowed": l4_out.entry_allowed,
+                "checklist_results": l4_out.checklist_results,
+                "trade_type_allowed": l4_out.trade_type_allowed,
+                "reasons": l4_out.reasons,
+                "details": l4_out.details,
+                "allocation_pct": l4_out.allocation_pct,
+            }
+            logger.info("Layer 4: %s %s (checklist %d/%s)",
+                         l4_data_with_l3["direction"],
+                         "ALLOWED" if l4_out.entry_allowed else "BLOCKED",
+                         sum(l4_out.checklist_results.values()),
+                         len(l4_out.checklist_results))
+        except Exception as e:
+            report["errors"].append(f"Layer 4: {e}")
+            logger.error("Layer 4 failed: %s", e)
+    else:
+        logger.info("Layer 4: Skipped — macro short activated")
 
     # ----- Layer 5 — Enriched Market Structure -----
     try:
@@ -340,12 +349,19 @@ def run_daily_analysis(mock: bool = False) -> dict:
                 report["sizing"][layer_name] = {"status": "No entry signal"}
                 continue
 
+            # Determine trade direction for stop loss calculation
+            if layer_name == "layer3":
+                trade_dir = report.get("swing", {}).get("direction", "NONE")
+            else:  # layer4
+                trade_dir = report.get("intraday", {}).get("direction", "NONE")
+            stop_loss_price = btc_price * 1.03 if trade_dir == "SHORT" else btc_price * 0.97
+
             sizing_input = SizingInput(
                 layer_name=layer_name,
                 regime=Regime(regime_val),
                 account_balance=100_000,
                 entry_price=btc_price,
-                stop_loss_price=btc_price * 0.97,  # 3% stop placeholder
+                stop_loss_price=stop_loss_price,
                 conflict_size_multiplier=size_mult,
             )
             size_out = calculate_position_size(sizing_input)

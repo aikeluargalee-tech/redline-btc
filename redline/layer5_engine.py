@@ -88,6 +88,7 @@ def analyze_enriched(enriched: dict) -> dict:
     fng = enriched.get("fng_value", 0)
     fng_value = 0
     if isinstance(fng, (int, float)):
+        fng_value = fng
         if fng <= 15:
             sentiment_label = "extreme_fear"
         elif fng <= 35:
