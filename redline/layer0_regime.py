@@ -16,9 +16,16 @@ from typing import Optional
 
 import yaml
 
-logger = logging.getLogger(__name__)
-
 CONFIG_PATH = "config.yaml"
+
+
+def load_config(config_path: str = CONFIG_PATH) -> dict:
+    """Load configuration from YAML file."""
+    with open(config_path, "r") as f:
+        return yaml.safe_load(f)
+
+
+logger = logging.getLogger(__name__)
 
 
 class Regime(str, Enum):

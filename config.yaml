@@ -25,7 +25,7 @@ layer0:
 layer1:
   check_interval_hours: 4.5
   risk_off_triggers:
-    mstr_daily_close_below: 5.0
+    mstr_daily_close_below: 75.0
     vix_sustained_above: 25.0
     us10y_above: 4.60
     usdjpy_spike_pct: 2.0

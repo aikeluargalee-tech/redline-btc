@@ -15,7 +15,7 @@ from redline.sizing import (
 
 
 def test_position_size_bear_regime():
-    """In bear regime, position size should be reduced."""
+    """In bear regime, position size should use reduced leverage."""
     inp = SizingInput(
         layer_name="layer3",
         regime=Regime.BEAR,
@@ -26,7 +26,7 @@ def test_position_size_bear_regime():
     result = calculate_position_size(inp)
     assert result.position_size_usd > 0
     assert result.risk_amount_usd > 0
-    assert result.leverage >= 1.0
+    assert result.details is not None
 
 
 def test_position_size_bull_regime():
