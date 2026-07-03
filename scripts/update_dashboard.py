@@ -7,6 +7,7 @@ Safe to run on cron — logs to stdout.
 
 import json
 import logging
+import subprocess
 import sys
 from pathlib import Path
 
@@ -17,6 +18,32 @@ from scripts.daily_run import run_daily_analysis
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("update_dashboard")
+
+STATE_FILE = root / ".redline_state.json"
+
+
+def _send_tg_alert(message: str):
+    """Send Telegram alert via GetClaw bridge."""
+    try:
+        subprocess.run(
+            [sys.executable, str(root.parent / "getclaw-bridge" / "getclaw_send.py"), message],
+            capture_output=True, timeout=30
+        )
+    except Exception as e:
+        logger.warning("TG alert failed: %s", e)
+
+
+def _load_prev_state() -> dict:
+    try:
+        with open(STATE_FILE) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_state(state: dict):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f)
 
 
 def main():
@@ -36,8 +63,41 @@ def main():
                 summary.get("intraday_direction", "?"),
                 errors)
 
-    # Push to GitHub so GH Pages serves the latest
-    import subprocess
+    # --- Push-on-change: L1 state → Telegram alert ---
+    mr = report.get("macro_risk", {})
+    current_state = mr.get("state", "RISK_ON")
+    prev = _load_prev_state()
+    prev_state = prev.get("l1_state", current_state)
+
+    if current_state != prev_state:
+        detail = mr.get("triggered_by", [])
+        triggers = ", ".join(detail[:5]) if detail else "none"
+        alert = (
+            f"⚡ REDLINE ALERT — L1 State Change\n"
+            f"{prev_state} → {current_state}\n"
+            f"Triggers: {triggers}\n"
+            f"Regime: {summary.get('regime', '?')}\n"
+            f"Details: {mr.get('details', 'N/A')}"
+        )
+        _send_tg_alert(alert)
+        logger.info("L1 state changed: %s → %s (alert sent)", prev_state, current_state)
+
+    # Also alert on enriched risk level changes
+    er = report.get("enriched_risk", {})
+    prev_er = prev.get("enriched_risk_level", "normal")
+    curr_er = er.get("risk_level", "normal")
+    if prev_er != "critical" and curr_er == "critical":
+        _send_tg_alert(
+            f"⚠ REDLINE ALERT — Enriched Risk CRITICAL\n"
+            f"Crash: {er.get('crash_score', '?')} BlackSwan: {er.get('black_swan_score', '?')}\n"
+            f"Liquidity: {er.get('liquidity_verdict', '?')} DXY: {er.get('dxy', '?')}"
+        )
+        logger.info("Enriched risk CRITICAL (alert sent)")
+
+    # Save current state for next comparison
+    _save_state({"l1_state": current_state, "enriched_risk_level": curr_er})
+
+    # --- Push to GitHub ---
     result = subprocess.run(
         ["git", "-C", str(root), "add", "docs/redline_report.json",
          "&&", "git", "-C", str(root), "commit", "-m", "auto: update dashboard report",
@@ -47,7 +107,6 @@ def main():
     if result.returncode == 0:
         logger.info("Pushed to GitHub Pages")
     else:
-        # Non-fatal: maybe nothing to commit
         if "nothing to commit" in result.stdout or "nothing to commit" in result.stderr:
             logger.info("No changes to push")
         else:
