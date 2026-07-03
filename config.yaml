@@ -1,0 +1,158 @@
+# Redline BTC Configuration
+# Single source of truth for all thresholds and parameters
+
+# Layer 0 - Regime Classification
+layer0:
+  regime:
+    bear:
+      cycle_score_max: 30.0
+      mvrv_z_max: 0.3
+      etf_flow_weekly_min: -1.0  # Billions
+    bull:
+      cycle_score_min: 70.0
+      mvrv_z_min: 2.0
+      etf_flow_weekly_min: 0.5
+    transitional:
+      cycle_score_range: [30.0, 70.0]
+      mvrv_z_range: [0.3, 2.0]
+  leverage:
+    bull_multiplier: 1.5
+    bear_multiplier: 0.5
+    transitional_size_reduction: 0.75
+    transitional_conviction_threshold: 0.7
+
+# Layer 1 - Macro Risk Switch
+layer1:
+  check_interval_hours: 4.5
+  risk_off_triggers:
+    mstr_daily_close_below: 5.0
+    vix_sustained_above: 25.0
+    us10y_above: 4.60
+    usdjpy_spike_pct: 2.0
+  risk_on_criteria:
+    mstr_above_sessions: 2.0
+    mstr_threshold: 2.0
+    vix_below_sessions: 2.0
+    vix_threshold: 22.0
+    us10y_below: 4.55
+    usdjpy_stable_hours: 48
+    btc_structure_low_required: true
+
+# Layer 1.5 - Macro Short
+layer1_5:
+  activation:
+    requires_layer1_off: true
+    btc_below_structure: true
+  targets:
+    tp1: 8872
+    tp2: 5000
+    tp3: 8000
+  stop_loss:
+    above_trigger_level: true
+
+# Layer 2 - Positioning
+layer2:
+  allocation_pct: 0.40
+  timeframe: "weeks_to_months"
+  bear_regime:
+    leverage_max: 1.0  # Spot only
+    accumulation_tranches:
+      t1:
+        range: [8000, 60000]
+        allocation_pct: 0.33
+      t2:
+        range: [2000, 55000]
+        allocation_pct: 0.33
+      t3:
+        range: [0, 8000]
+        allocation_pct: 0.34
+    stops_enabled: false  # Cycle positions
+
+# Layer 3 - Swing Trading
+layer3:
+  allocation_pct: 0.20
+  timeframe_days: [2, 10]
+  entry_requirements:
+    structure_break_reclaim: true
+    daily_sr_level: true
+    adx_below: 35
+  bear_regime:
+    longs:
+      require_major_support: true
+      daily_oversold: true
+      cvd_positive: true
+      mvrv_z_below: 0.2
+    shorts:
+      require_4h_1d_bearish: true
+      cvd_rolling: true
+
+# Layer 4 - Intraday
+layer4:
+  allocation_pct: 0.10
+  timeframe: "hours"
+  entry_checklist:
+    adx_direction: true
+    mtf_alignment: true
+    cvd_invalidation: true
+    price_vs_liq_cluster: true
+    vp_state: true
+    session_context: true
+    layer3_alignment: true
+  trade_types:
+    type_a: "trend_continuation"
+    type_b: "mean_reversion"
+    type_c: "scalp"
+  bear_regime:
+    longs:
+      allowed_types: ["type_b", "type_c"]
+    shorts:
+      allowed_types: ["type_a", "type_b", "type_c"]
+
+# Conflict Resolution
+conflict_resolution:
+  rules:
+    - "higher_layer_wins_direction"
+    - "lower_layers_use_smaller_size"
+    - "contradiction_type_c_only"
+    - "escalation_meets_higher_criteria"
+    - "capital_isolation_per_layer"
+
+# Position Sizing
+sizing:
+  base_risk_pct: 0.01  # 1% per trade
+  max_position_size_usd: 100000
+  layer_multipliers:
+    layer2: 1.0
+    layer3: 0.7
+    layer4: 0.5
+  regime_adjustments:
+    bull: 1.2
+    bear: 0.6
+    transitional: 0.8
+  loss_limits:
+    layer2_daily: 0.02
+    layer3_daily: 0.015
+    layer4_daily: 0.01
+
+# Data Sources
+data_sources:
+  layer0:
+    coingecko_api: "https://api.coingecko.com/api/v3"
+    glassnode_mock: true
+    etf_flow_mock: true
+  layer1:
+    yahoo_finance: true
+    fred_api_key: "${FRED_API_KEY}"
+    exchange_rates_api: "https://openexchangerates.org/api"
+  layer4:
+    amt_feed_path: "/tmp/amt_feed.json"
+    btc_data_packet_path: "/tmp/btc_data_packet.json"
+
+# Current State (updated by fetch scripts)
+current_state:
+  regime: "BEAR"
+  layer1_risk: "OFF"
+  btc_price: 42000
+  cycle_score: 25.2
+  mvrv_z: 0.25
+  etf_flow_weekly: -1.5
