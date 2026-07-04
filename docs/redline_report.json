@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-07-03T18:03:37.653742",
+  "timestamp": "2026-07-04T12:35:55.606137",
   "regime": {
     "regime": "BEAR",
     "confidence": 0.8,
     "leverage_multiplier": 0.5,
     "size_reduction": 1.0,
-    "details": "BEAR regime: 4/5 bearish signals. Cycle=26.4, MVRV-Z=0.25, ETF=-9706.0B"
+    "details": "BEAR regime: 4/5 bearish signals. Cycle=27.4, MVRV-Z=0.30, ETF=-234.0B"
   },
   "macro_risk": {
     "state": "ON",
@@ -42,7 +42,7 @@
     "checklist_results": {
       "adx_direction": true,
       "mtf_alignment": false,
-      "cvd_invalidation": true,
+      "cvd_invalidation": false,
       "price_vs_liq_cluster": true,
       "vp_state": true,
       "session_context": true,
@@ -50,9 +50,9 @@
     },
     "trade_type_allowed": true,
     "reasons": [
-      "Checklist failed: mtf_alignment"
+      "Checklist failed: mtf_alignment, cvd_invalidation"
     ],
-    "details": "Intraday SHORT (type_a): BLOCKED. Checklist: 6/7 passed. Reasons: Checklist failed: mtf_alignment",
+    "details": "Intraday SHORT (type_a): BLOCKED. Checklist: 5/7 passed. Reasons: Checklist failed: mtf_alignment, cvd_invalidation",
     "allocation_pct": 0.1
   },
   "market_structure": {
@@ -64,22 +64,22 @@
     "volatility_regime": "elevated",
     "realized_vol_1h_pct": 58.54,
     "sentiment": "fear",
-    "fng_value": 0,
+    "fng_value": 22,
     "tail_risk": "low",
     "crash_score": 1,
     "black_swan_score": 0,
     "liquidity_health": "healthy",
     "liquidity_verdict": "HEALTHY",
-    "nearest_support": 61544.57,
-    "nearest_resistance": 62500.0,
-    "support_distance_pct": 0.26,
-    "resistance_distance_pct": 1.28,
-    "atr_1d_pct": 3.66,
-    "atr_1h_pct": 0.54,
+    "nearest_support": 62330.22,
+    "nearest_resistance": 63750.0,
+    "support_distance_pct": -1.01,
+    "resistance_distance_pct": 3.31,
+    "atr_1d_pct": 3.64,
+    "atr_1h_pct": 0.32,
     "btc_equity_correlation": -0.4814,
     "correlation_signal": "divergence",
-    "oi_change_24h_pct": 1.15,
-    "oi_trend": "stable",
+    "oi_change_24h_pct": -2.86,
+    "oi_trend": "unwinding",
     "cot_signal": "NEUTRAL \u2014 No extreme positioning",
     "funding_signal": "POSITIVE",
     "taker_buy_ratio": 0.525
@@ -108,7 +108,25 @@
     "crash_score": 1,
     "black_swan_score": 0,
     "liquidity_verdict": "HEALTHY",
-    "dxy": 100.704
+    "dxy": 100.857
+  },
+  "onchain_brk": {
+    "nupl": 0.14920000731945038,
+    "rhodl_ratio": 0.12049999833106995,
+    "lth_sopr_24h": 0.9257225473916847,
+    "sth_sopr_24h": 1.0013149712871006,
+    "sopr_24h": 1.0008189960064044,
+    "supply_in_profit_share": 51.59000015258789,
+    "mvrv": 1.1754000186920166,
+    "realized_price": 53057.09,
+    "puell_multiple": 0.689300000667572,
+    "hash_rate_ehs": 1.0181700967594443e+21,
+    "hash_rate_drawdown_pct": -25.44000244140625,
+    "fee_rate_sat_vb": 0.403,
+    "difficulty": 133869853540305.39,
+    "utxos_over_1y_sopr_24h": 1.5438499471580154,
+    "lth_net_realized_pnl": -1356.88,
+    "sth_net_realized_pnl": 99515.49
   },
   "summary": {
     "regime": "BEAR",

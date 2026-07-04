@@ -11,16 +11,12 @@ import logging
 import sys
 from pathlib import Path
 
-import requests
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from scripts.packet_source import fetch_packet
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
-
-YAHOO_HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 
 def fetch_live_data() -> dict:
@@ -48,32 +44,18 @@ def fetch_live_data() -> dict:
         "btc_price": p.get("critical", {}).get("btc_price", 62000) if p else 62000,
     }
 
-    # MSTR from Yahoo Finance
-    try:
-        r = requests.get(
-            "https://query1.finance.yahoo.com/v8/finance/chart/MSTR",
-            headers=YAHOO_HEADERS, timeout=10
-        )
-        mstr = r.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]
-        result["mstr_close"] = float(mstr)
-    except Exception as e:
-        logger.warning(f"MSTR fetch failed: {e}")
-
-    # USD/JPY from Yahoo Finance
-    try:
-        r = requests.get(
-            "https://query1.finance.yahoo.com/v8/finance/chart/USDJPY=X",
-            headers=YAHOO_HEADERS, timeout=10
-        )
-        jpy = r.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]
-        quotes = r.json()["chart"]["result"][0].get("indicators", {}).get("quote", [{}])
-        if quotes and len(quotes[0].get("open", [])) > 0:
-            opens = [o for o in quotes[0]["open"] if o is not None]
-            if opens:
-                result["usdjpy_change_pct"] = ((jpy - opens[0]) / opens[0]) * 100
-        result["_usdjpy_price"] = jpy
-    except Exception as e:
-        logger.warning(f"USD/JPY fetch failed: {e}")
+    # MSTR from packet context (no external API call needed)
+    mstr_close = ctx.get("mstr_close")
+    usdjpy = ctx.get("usdjpy")
+    if mstr_close is not None:
+        result["mstr_close"] = float(mstr_close)
+    else:
+        logger.warning("MSTR close not in packet, using default")
+    if usdjpy is not None:
+        result["_usdjpy_price"] = float(usdjpy)
+        logger.info("USD/JPY from packet: %s", usdjpy)
+    else:
+        logger.warning("USD/JPY not in packet")
 
     btc = result["btc_price"]
     logger.info(

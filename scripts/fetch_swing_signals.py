@@ -52,14 +52,21 @@ def fetch_swing_signals() -> dict:
     elif "ZONE_HIT" in amt_mtf or "BALANCE" in dp.get("balance_state", ""):
         daily_sr_level = "support"
 
-    # Daily oversold from balance width + position in range
-    daily_oversold = False
-    bal_width = dp.get("balance_width_pct", 5)
-    if bal_width > 3:
-        daily_oversold = True  # Wide balance = volatile/oversold zone
-
-    # MVRV-Z from packet
+    # Daily oversold from RSI-14 in packet context
     p = fetch_packet()
+    daily_oversold = False
+    daily_rsi_14 = None
+    if p:
+        daily_rsi_14 = p.get("context", {}).get("daily_rsi_14")
+    if daily_rsi_14 is not None and isinstance(daily_rsi_14, (int, float)):
+        daily_oversold = float(daily_rsi_14) < 30
+        logger.debug("Daily RSI-14 from packet: %s (oversold=%s)", daily_rsi_14, daily_oversold)
+    else:
+        # Fallback heuristic
+        bal_width = dp.get("balance_width_pct", 5)
+        daily_oversold = bal_width > 3 if isinstance(bal_width, (int, float)) else False
+
+    # MVRV-Z from packet (reuse p from above)
     mvrv_z_score = 0.25
     if p:
         mvrv_z_score = p.get("reference", {}).get("cycle", {}).get("mvrv_z", 0.25)
