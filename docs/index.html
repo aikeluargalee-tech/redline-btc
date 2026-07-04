@@ -85,7 +85,17 @@
   @media (max-width: 480px) {
     .grid { grid-template-columns: 1fr; }
     .checklist-grid { grid-template-columns: 1fr; }
+    .onchain-grid { grid-template-columns: 1fr 1fr; }
   }
+
+  .onchain-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px 12px; margin: 8px 0;
+  }
+  .oc-metric { display: flex; flex-direction: column; gap: 2px; }
+  .oc-label { font-size: .6rem; text-transform: uppercase; color: var(--dim); letter-spacing: .03em; }
+  .oc-val { font-size: .95rem; font-weight: 600; color: #fff; }
+  .oc-hint { font-size: .62rem; color: var(--dim); }
 </style>
 </head>
 <body>
@@ -234,6 +244,71 @@ function render(d) {
         <div class="sub">leverage: ${ms.leverage} · funding: ${ms.funding_bias}</div>
         <div class="detail">VP: ${ms.volume_profile} · liq_risk: ${ms.liquidation_risk}</div>
       </div>`;
+  }
+
+  // --- On-Chain (BRK) ---
+  if (d.onchain_brk) {
+    const brk = d.onchain_brk;
+    if (brk.status) {
+      grid.innerHTML += `<div class="card">
+        <div class="title">On-Chain · BRK <span style="font-weight:400">bitview.space</span></div>
+        <div class="value" style="color:var(--amber)">${brk.status}</div>
+      </div>`;
+    } else {
+      const nupl = brk.nupl;
+      const nuplColor = nupl >= 0.5 ? 'var(--red)' : nupl >= 0 ? 'var(--amber)' : 'var(--green)';
+      const lth = brk.lth_sopr_24h;
+      const lthColor = lth >= 1.02 ? 'var(--green)' : lth >= 1.0 ? 'var(--amber)' : 'var(--red)';
+      const rhodl = brk.rhodl_ratio;
+      const rhodlColor = rhodl >= 0.5 ? 'var(--red)' : rhodl >= 0.1 ? 'var(--amber)' : 'var(--green)';
+      const hrDD = brk.hash_rate_drawdown_pct;
+      const hrDDColor = hrDD > -10 ? 'var(--green)' : hrDD > -25 ? 'var(--amber)' : 'var(--red)';
+      const supply = brk.supply_in_profit_share;
+      const hrEHS = brk.hash_rate_ehs;
+      const hrReadable = hrEHS ? (hrEHS / 1e18).toFixed(1) + ' EH/s' : 'N/A';
+      const nuplPhase = nupl == null ? 'N/A' :
+        nupl >= 0.75 ? 'Euphoria' : nupl >= 0.5 ? 'Belief' : nupl >= 0.25 ? 'Optimism' : nupl >= 0 ? 'Hope' : 'Capitulation';
+      const lthHint = lth == null ? 'N/A' :
+        lth >= 1.02 ? 'Realizing profit' : lth >= 1.0 ? 'At cost' : 'Realizing loss';
+      const rhodlHint = rhodl == null ? 'N/A' :
+        rhodl >= 0.5 ? 'High (hot)' : rhodl >= 0.1 ? 'Mid-range' : 'Deep value';
+      grid.innerHTML += `<div class="card">
+        <div class="title">On-Chain · BRK <span style="font-weight:400">bitview.space</span></div>
+        <div class="onchain-grid">
+          <div class="oc-metric">
+            <span class="oc-label">NUPL</span>
+            <span class="oc-val" style="color:${nuplColor}">${nupl != null ? (nupl * 100).toFixed(1) + '%' : 'N/A'}</span>
+            <span class="oc-hint">${nuplPhase}</span>
+          </div>
+          <div class="oc-metric">
+            <span class="oc-label">LTH-SOPR</span>
+            <span class="oc-val" style="color:${lthColor}">${lth != null ? lth.toFixed(3) : 'N/A'}</span>
+            <span class="oc-hint">${lthHint}</span>
+          </div>
+          <div class="oc-metric">
+            <span class="oc-label">RHODL Ratio</span>
+            <span class="oc-val" style="color:${rhodlColor}">${rhodl != null ? rhodl.toFixed(3) : 'N/A'}</span>
+            <span class="oc-hint">${rhodlHint}</span>
+          </div>
+          <div class="oc-metric">
+            <span class="oc-label">Hash Drawdown</span>
+            <span class="oc-val" style="color:${hrDDColor}">${hrDD != null ? hrDD.toFixed(1) + '%' : 'N/A'}</span>
+            <span class="oc-hint">Miner stress</span>
+          </div>
+          <div class="oc-metric">
+            <span class="oc-label">Supply in Profit</span>
+            <span class="oc-val">${supply != null ? supply.toFixed(1) + '%' : 'N/A'}</span>
+            <span class="oc-hint">UTXOs</span>
+          </div>
+          <div class="oc-metric">
+            <span class="oc-label">Hash Rate</span>
+            <span class="oc-val">${hrReadable}</span>
+            <span class="oc-hint">Network</span>
+          </div>
+        </div>
+        <div class="detail">FREE · bitview.space · updated with packet</div>
+      </div>`;
+    }
   }
 
   // --- Conflict Resolution ---

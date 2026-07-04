@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from scripts.packet_source import fetch_packet
+from scripts.packet_source import fetch_packet, fetch_brk
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -23,9 +23,12 @@ logger = logging.getLogger(__name__)
 def fetch_live_data() -> dict:
     """Fetch Layer 0 data from the BTC Data Packet.
 
-    Returns dict with fields matching RegimeInputs dataclass.
+    Returns dict with fields matching RegimeInputs dataclass,
+    plus BRK on-chain metrics (NUPL, LTH-SOPR, RHODL, hash rate).
     """
     p = fetch_packet()
+    brk = fetch_brk()
+
     if not p:
         logger.warning("Packet fetch failed, using fallback defaults")
         return fetch_mock_data()
@@ -46,9 +49,14 @@ def fetch_live_data() -> dict:
         f"ETF={etf_weekly / 1000:.2f}B, "
         f"Premium={premium:.4f}%"
     )
+    if brk:
+        nupl = brk.get("nupl")
+        lth = brk.get("lth_sopr_24h")
+        hr_dd = brk.get("hash_rate_drawdown_pct")
+        info += f", BRK NUPL={nupl}, LTH-SOPR={lth}, HashDrawdown={hr_dd}"
     logger.info(info)
 
-    return {
+    result = {
         "mvrv_z_score": mvrv_z,
         "cycle_composite": composite,
         "options_skew_30d": skew,
@@ -57,6 +65,12 @@ def fetch_live_data() -> dict:
         "btc_price": p.get("critical", {}).get("btc_price", p.get("header", {}).get("btc_price", 62000)),
         "_etf_daily": etf_daily,
     }
+
+    # Inject BRK on-chain data
+    if brk:
+        result["_brk"] = brk
+
+    return result
 
 
 def fetch_mock_data() -> dict:

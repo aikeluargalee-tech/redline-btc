@@ -37,7 +37,7 @@ from redline.conflict_resolver import ConflictInput, resolve_conflicts
 from redline.sizing import SizingInput, calculate_position_size, check_loss_limit
 from redline.checklist import pre_session_checklist
 
-from scripts.packet_source import fetch_enriched
+from scripts.packet_source import fetch_enriched, fetch_brk
 from scripts.fetch_layer0 import fetch_mock_data as fetch_l0_mock, fetch_live_data as fetch_l0_live
 from scripts.fetch_layer1 import fetch_mock_data as fetch_l1_mock, fetch_live_data as fetch_l1_live
 from scripts.fetch_data_packet import fetch_mock_data as fetch_dp_mock, fetch_live_data as fetch_dp_live
@@ -299,6 +299,22 @@ def run_daily_analysis(mock: bool = False) -> dict:
     except Exception as e:
         report["errors"].append(f"Layer 5: {e}")
         logger.error("Layer 5 failed: %s", e)
+
+    # ----- On-Chain (BRK) -----
+    try:
+        brk = fetch_brk()
+        if brk:
+            report["onchain_brk"] = brk
+            hr_ehs = brk.get("hash_rate_ehs")
+            hr_readable = f"{hr_ehs / 1e18:.1f} EH/s" if hr_ehs else "N/A"
+            logger.info("BRK On-Chain: NUPL=%.3f LTH-SOPR=%.4f RHODL=%.3f HashRate=%s",
+                         brk.get("nupl", 0), brk.get("lth_sopr_24h", 0),
+                         brk.get("rhodl_ratio", 0), hr_readable)
+        else:
+            report["onchain_brk"] = {"status": "BRK data unavailable"}
+    except Exception as e:
+        report["errors"].append(f"BRK on-chain: {e}")
+        logger.error("BRK on-chain failed: %s", e)
 
     # ----- Conflict Resolution -----
     try:

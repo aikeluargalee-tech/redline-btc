@@ -46,6 +46,42 @@ def fetch_packet() -> Optional[dict]:
         return None
 
 
+def fetch_brk() -> dict:
+    """Extract BRK on-chain data from the pipeline packet.
+
+    Reads reference.brk from data.json — providing NUPL, MVRV-Z, LTH-SOPR,
+    RHODL Ratio, hash rate, fee rate, and difficulty from bitview.space.
+
+    Returns empty dict if BRK data is unavailable.
+    """
+    p = fetch_packet()
+    if not p:
+        return {}
+
+    brk = (p.get("reference", {}) or {}).get("brk", {})
+    if not brk:
+        return {}
+
+    return {
+        "nupl": brk.get("nupl"),
+        "rhodl_ratio": brk.get("rhodl_ratio"),
+        "lth_sopr_24h": brk.get("lth_sopr_24h"),
+        "sth_sopr_24h": brk.get("sth_sopr_24h"),
+        "sopr_24h": brk.get("sopr_24h"),
+        "supply_in_profit_share": brk.get("supply_in_profit_share"),
+        "mvrv": brk.get("mvrv"),
+        "realized_price": brk.get("realized_price"),
+        "puell_multiple": brk.get("puell_multiple"),
+        "hash_rate_ehs": brk.get("hash_rate_ehs"),
+        "hash_rate_drawdown_pct": brk.get("hash_rate_drawdown_pct"),
+        "fee_rate_sat_vb": brk.get("fee_rate_sat_vb"),
+        "difficulty": brk.get("difficulty"),
+        "utxos_over_1y_sopr_24h": brk.get("utxos_1y_sopr"),
+        "lth_net_realized_pnl": brk.get("lth_net_realized_pnl"),
+        "sth_net_realized_pnl": brk.get("sth_net_realized_pnl"),
+    }
+
+
 def fetch_enriched() -> dict:
     """Fetch packet data PLUS enriched signals from pipeline files.
 
