@@ -139,7 +139,7 @@
 <script>
 async function loadReport() {
   try {
-    const r = await fetch('redline_report.json');
+    const r = await fetch('redline_report.json?t=' + Date.now());
     const d = await r.json();
     render(d);
   } catch(e) {
