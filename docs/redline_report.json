@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-07T12:01:41.954986",
+  "timestamp": "2026-07-07T13:47:41.021908",
   "regime": {
     "regime": "BEAR",
     "confidence": 0.6,
@@ -21,7 +21,7 @@
     "tranche": null,
     "amount_usd": 0.0,
     "btc_amount": 0.0,
-    "details": "HOLD: Price 63415 not in any unfilled tranche range. Current position: 0.00000000 BTC.",
+    "details": "HOLD: Price 63280 not in any unfilled tranche range. Current position: 0.00000000 BTC.",
     "total_allocation_pct": 0.4
   },
   "swing": {
@@ -56,13 +56,25 @@
     "allocation_pct": 0.1,
     "heatmap_gate": {
       "go": true,
-      "reason": "No heatmap data available",
-      "warning": "Run V7 capture for Layer 6 validation",
-      "requires_manual_review": true,
-      "nearest_above": null,
-      "nearest_below": null,
-      "staleness_minutes": null,
-      "data_available": false
+      "reason": "Heatmap alignment OK \u2014 no blocking clusters",
+      "warning": "",
+      "requires_manual_review": false,
+      "nearest_above": {
+        "price": 64000,
+        "distance_pct": 1.2,
+        "density": "Moderate"
+      },
+      "nearest_below": {
+        "price": 62000,
+        "distance_pct": -2.0,
+        "density": "Scattered"
+      },
+      "staleness_minutes": 0,
+      "vice_grip": false,
+      "cluster_spread_usd": 2000,
+      "tightness": "Moderate",
+      "checklist_passed": true,
+      "checklist_details": "L6 Heatmap: PASS. Go=True, Dir=SHORT. Heatmap alignment OK \u2014 no blocking clusters"
     }
   },
   "market_structure": {
@@ -82,17 +94,17 @@
     "liquidity_verdict": "HEALTHY",
     "nearest_support": 63042.0,
     "nearest_resistance": 65000.0,
-    "support_distance_pct": 0.59,
-    "resistance_distance_pct": 2.5,
+    "support_distance_pct": 0.38,
+    "resistance_distance_pct": 2.72,
     "atr_1d_pct": 3.71,
     "atr_1h_pct": 0.56,
-    "btc_equity_correlation": 0.6507,
+    "btc_equity_correlation": 0.5155,
     "correlation_signal": "risk_on_weak",
-    "oi_change_24h_pct": -3.66,
+    "oi_change_24h_pct": -3.68,
     "oi_trend": "unwinding",
     "cot_signal": "BEARISH \u2014 Lev funds net short",
     "funding_signal": "POSITIVE",
-    "taker_buy_ratio": 0.551
+    "taker_buy_ratio": 0.498
   },
   "conflict_resolution": {
     "action": "allow",
@@ -118,25 +130,25 @@
     "crash_score": 1,
     "black_swan_score": 0,
     "liquidity_verdict": "HEALTHY",
-    "dxy": 100.911
+    "dxy": 100.945
   },
   "onchain_brk": {
-    "nupl": 0.15870000422000885,
-    "rhodl_ratio": 0.09399999678134918,
-    "lth_sopr_24h": 0.758369404427656,
-    "sth_sopr_24h": 1.0031196252688728,
-    "sopr_24h": 0.9981451825586082,
-    "supply_in_profit_share": 52.27000045776367,
-    "mvrv": 1.1886999607086182,
-    "realized_price": 53057.33,
-    "puell_multiple": 0.6998000144958496,
-    "hash_rate_ehs": 7.919100752573455e+20,
-    "hash_rate_drawdown_pct": -42.01000213623047,
-    "fee_rate_sat_vb": 0.602,
+    "nupl": 0.15839999914169312,
+    "rhodl_ratio": 0.09539999812841415,
+    "lth_sopr_24h": 0.7839514099370135,
+    "sth_sopr_24h": 1.0008047863103215,
+    "sopr_24h": 0.9965859560656564,
+    "supply_in_profit_share": 51.9900016784668,
+    "mvrv": 1.1883000135421753,
+    "realized_price": 53048.13,
+    "puell_multiple": 0.6995999813079834,
+    "hash_rate_ehs": 8.118741948016483e+20,
+    "hash_rate_drawdown_pct": -40.54999923706055,
+    "fee_rate_sat_vb": 0.522,
     "difficulty": 133869853540305.39,
-    "utxos_over_1y_sopr_24h": 1.221553575120494,
-    "lth_net_realized_pnl": -852305.32,
-    "sth_net_realized_pnl": -3522214.01
+    "utxos_over_1y_sopr_24h": 1.0168355152190305,
+    "lth_net_realized_pnl": -536354.64,
+    "sth_net_realized_pnl": 61826.07
   },
   "summary": {
     "regime": "BEAR",
