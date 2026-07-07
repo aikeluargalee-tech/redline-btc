@@ -31,13 +31,14 @@ from redline.layer2_positioning import PositioningInput, assess_positioning
 from redline.layer3_swing import SwingInputs, assess_swing_trade, SwingDirection
 from redline.layer4_intraday import (
     IntradayInputs, IntradayDirection, TradeType, assess_intraday_trade,
+    assess_heatmap_gate, HeatmapGateInput, HeatmapCluster,
 )
 from redline.layer5_engine import analyze_enriched, check_enriched_risk_signals
 from redline.conflict_resolver import ConflictInput, resolve_conflicts
 from redline.sizing import SizingInput, calculate_position_size, check_loss_limit
-from redline.checklist import pre_session_checklist
+from redline.checklist import pre_session_checklist, layer6_heatmap_checklist
 
-from scripts.packet_source import fetch_enriched, fetch_brk
+from scripts.packet_source import fetch_enriched, fetch_brk, fetch_heatmap
 from scripts.fetch_layer0 import fetch_mock_data as fetch_l0_mock, fetch_live_data as fetch_l0_live
 from scripts.fetch_layer1 import fetch_mock_data as fetch_l1_mock, fetch_live_data as fetch_l1_live
 from scripts.fetch_data_packet import fetch_mock_data as fetch_dp_mock, fetch_live_data as fetch_dp_live
@@ -277,6 +278,111 @@ def run_daily_analysis(mock: bool = False) -> dict:
                          "ALLOWED" if l4_out.entry_allowed else "BLOCKED",
                          sum(l4_out.checklist_results.values()),
                          len(l4_out.checklist_results))
+
+            # ----- Layer 6 — Heatmap Entry Gate -----
+            try:
+                heatmap_data = fetch_heatmap()
+                if heatmap_data and heatmap_data.get("data_available"):
+                    above = heatmap_data.get("nearest_above")
+                    below = heatmap_data.get("nearest_below")
+
+                    hg_input = HeatmapGateInput(
+                        signal_direction=direction_enum,
+                        current_price=btc_price,
+                        nearest_above=HeatmapCluster(
+                            price=above["price"],
+                            distance_pct=above["distance_pct"],
+                            distance_usd=above["distance_usd"],
+                            density=above["density"],
+                            cluster_width_usd=above["cluster_width_usd"],
+                        ) if above else None,
+                        nearest_below=HeatmapCluster(
+                            price=below["price"],
+                            distance_pct=below["distance_pct"],
+                            distance_usd=below["distance_usd"],
+                            density=below["density"],
+                            cluster_width_usd=below["cluster_width_usd"],
+                        ) if below else None,
+                        cluster_spread_usd=heatmap_data.get("cluster_spread_usd"),
+                        tightness=heatmap_data.get("tightness", "Unknown"),
+                        vice_grip=heatmap_data.get("vice_grip", False),
+                        staleness_minutes=heatmap_data.get("staleness_minutes"),
+                        data_available=True,
+                        confidence=heatmap_data.get("confidence", "Unknown"),
+                    )
+                    hg_output = assess_heatmap_gate(hg_input)
+
+                    # Run checklist
+                    hg_checklist = layer6_heatmap_checklist(
+                        signal_direction=l4_data_with_l3["direction"],
+                        heatmap_go=hg_output.go,
+                        heatmap_reason=hg_output.reason,
+                        heatmap_warning=hg_output.warning,
+                        requires_manual_review=hg_output.requires_manual_review,
+                        data_available=True,
+                        staleness_minutes=heatmap_data.get("staleness_minutes"),
+                    )
+
+                    report["intraday"]["heatmap_gate"] = {
+                        "go": hg_output.go,
+                        "reason": hg_output.reason,
+                        "warning": hg_output.warning,
+                        "requires_manual_review": hg_output.requires_manual_review,
+                        "nearest_above": {
+                            "price": above["price"],
+                            "distance_pct": above["distance_pct"],
+                            "density": above["density"],
+                        } if above else None,
+                        "nearest_below": {
+                            "price": below["price"],
+                            "distance_pct": below["distance_pct"],
+                            "density": below["density"],
+                        } if below else None,
+                        "staleness_minutes": heatmap_data.get("staleness_minutes"),
+                        "vice_grip": heatmap_data.get("vice_grip", False),
+                        "cluster_spread_usd": heatmap_data.get("cluster_spread_usd"),
+                        "tightness": heatmap_data.get("tightness"),
+                        "checklist_passed": hg_checklist.passed,
+                        "checklist_details": hg_checklist.details,
+                    }
+
+                    # Heatmap gate can override L4 entry_allowed
+                    if not hg_output.go:
+                        report["intraday"]["entry_allowed"] = False
+                        report["intraday"]["reasons"].append(
+                            f"Heatmap gate blocked: {hg_output.reason}"
+                        )
+                        report["intraday"]["details"] += (
+                            f" | L6: BLOCKED — {hg_output.reason}"
+                        )
+
+                    logger.info(
+                        "Layer 6 Heatmap: %s — %s",
+                        "GO" if hg_output.go else "NO-GO",
+                        hg_output.reason[:80],
+                    )
+                else:
+                    # No heatmap data — record but don't block
+                    report["intraday"]["heatmap_gate"] = {
+                        "go": True,
+                        "reason": "No heatmap data available",
+                        "warning": "Run V7 capture for Layer 6 validation",
+                        "requires_manual_review": True,
+                        "nearest_above": None,
+                        "nearest_below": None,
+                        "staleness_minutes": None,
+                        "data_available": False,
+                    }
+                    logger.info("Layer 6 Heatmap: No data — passing through")
+            except Exception as e:
+                report["errors"].append(f"Layer 6 Heatmap: {e}")
+                logger.error("Layer 6 Heatmap failed: %s", e)
+                report["intraday"]["heatmap_gate"] = {
+                    "go": True,
+                    "reason": f"Heatmap gate error: {e}",
+                    "warning": "",
+                    "requires_manual_review": True,
+                }
         except Exception as e:
             report["errors"].append(f"Layer 4: {e}")
             logger.error("Layer 4 failed: %s", e)
@@ -401,16 +507,31 @@ def run_daily_analysis(mock: bool = False) -> dict:
     else:
         report["overall_status"] = "OPERATIONAL"
 
-    report["summary"] = {
-        "regime": regime_val,
-        "risk_state": risk_state_val,
-        "swing_direction": report.get("swing", {}).get("direction", "N/A"),
-        "swing_allowed": report.get("swing", {}).get("entry_allowed", False),
-        "intraday_direction": report.get("intraday", {}).get("direction", "N/A"),
-        "intraday_allowed": report.get("intraday", {}).get("entry_allowed", False),
-        "conflict_action": report.get("conflict_resolution", {}).get("action", "N/A"),
-        "errors": err_count,
-    }
+    try:
+        report["summary"] = {
+            "regime": regime_val,
+            "risk_state": risk_state_val,
+            "swing_direction": report.get("swing", {}).get("direction", "N/A"),
+            "swing_allowed": report.get("swing", {}).get("entry_allowed", False),
+            "intraday_direction": report.get("intraday", {}).get("direction", "N/A"),
+            "intraday_allowed": report.get("intraday", {}).get("entry_allowed", False),
+            "conflict_action": report.get("conflict_resolution", {}).get("action", "N/A"),
+            "errors": err_count,
+        }
+    except Exception as e:
+        report["errors"].append(f"Summary builder: {e}")
+        report["overall_status"] = "FAILED"
+        report["summary"] = {
+            "regime": regime_val,
+            "risk_state": risk_state_val,
+            "swing_direction": "ERROR",
+            "swing_allowed": False,
+            "intraday_direction": "ERROR",
+            "intraday_allowed": False,
+            "conflict_action": "ERROR",
+            "errors": len(report.get("errors", [])),
+        }
+        logger.error("Summary builder failed: %s", e)
 
     return report
 

@@ -70,6 +70,25 @@
   .checklist-item .pass { color: var(--green); }
   .checklist-item .fail { color: var(--red); }
 
+  .heatmap-sub {
+    margin-top: 10px; padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px; font-size: .7rem;
+  }
+  .heatmap-row { display: flex; align-items: center; gap: 10px; padding: 3px 0; }
+  .heatmap-dir { font-size: .9rem; width: 18px; text-align: center; }
+  .heatmap-price { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #fff; min-width: 80px; }
+  .heatmap-dist { font-family: 'JetBrains Mono', monospace; color: var(--dim); min-width: 55px; }
+  .heatmap-dens { font-size: .65rem; padding: 1px 6px; border-radius: 3px; }
+  .heatmap-dens.dense { background: rgba(240,68,82,.15); color: var(--red); }
+  .heatmap-dens.moderate { background: rgba(245,158,11,.15); color: var(--amber); }
+  .heatmap-dens.scattered { background: rgba(34,197,94,.1); color: var(--green); }
+  .heatmap-verdict { margin-top: 6px; font-weight: 600; }
+  .heatmap-verdict.go { color: var(--green); }
+  .heatmap-verdict.nogo { color: var(--red); }
+  .heatmap-warn { color: var(--amber); font-size: .65rem; margin-top: 2px; }
+
   .error-bar {
     background: rgba(240,68,82,.1); border: 1px solid rgba(240,68,82,.3);
     border-radius: 8px; padding: 10px 14px; margin-top: 16px;
@@ -223,12 +242,68 @@ function render(d) {
       }
       checklistHTML += '</div>';
     }
+
+    // Layer 6 — Heatmap Gate subsection
+    let heatmapHTML = '';
+    const hg = id.heatmap_gate;
+    if (hg) {
+      const densityClass = (d) => {
+        if (!d) return '';
+        if (d.includes('Dense')) return 'dense';
+        if (d === 'Moderate') return 'moderate';
+        return 'scattered';
+      };
+      const fmtPrice = (p) => p ? '$' + p.toLocaleString() : '—';
+      const fmtDist = (pct) => {
+        if (pct == null) return '—';
+        const sign = pct >= 0 ? '+' : '';
+        return sign + pct.toFixed(1) + '%';
+      };
+
+      heatmapHTML = '<div class="heatmap-sub">';
+      heatmapHTML += '<div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin-bottom:6px">▸ Heatmap Gate ' + (!hg.data_available ? '(no data)' : '') + '</div>';
+
+      if (hg.nearest_above) {
+        const a = hg.nearest_above;
+        heatmapHTML += `<div class="heatmap-row">
+          <span class="heatmap-dir">▲</span>
+          <span class="heatmap-price">${fmtPrice(a.price)}</span>
+          <span class="heatmap-dist">${fmtDist(a.distance_pct)}</span>
+          <span class="heatmap-dens ${densityClass(a.density)}">${a.density||'?'}</span>
+        </div>`;
+      }
+      if (hg.nearest_below) {
+        const b = hg.nearest_below;
+        heatmapHTML += `<div class="heatmap-row">
+          <span class="heatmap-dir">▼</span>
+          <span class="heatmap-price">${fmtPrice(b.price)}</span>
+          <span class="heatmap-dist">${fmtDist(b.distance_pct)}</span>
+          <span class="heatmap-dens ${densityClass(b.density)}">${b.density||'?'}</span>
+        </div>`;
+      }
+      if (hg.staleness_minutes != null) {
+        heatmapHTML += `<div style="font-size:.6rem;color:var(--dim);margin-top:4px">${hg.staleness_minutes}m ago</div>`;
+      }
+      if (hg.vice_grip) {
+        heatmapHTML += '<div style="font-size:.62rem;color:var(--amber);margin-top:2px">⚡ Vice Grip — breakout imminent</div>';
+      }
+      heatmapHTML += `<div class="heatmap-verdict ${hg.go ? 'go' : 'nogo'}">${hg.go ? '✓ GO' : '✗ NO-GO'}</div>`;
+      if (hg.reason) {
+        heatmapHTML += `<div style="font-size:.65rem;color:var(--dim);margin-top:2px">${hg.reason}</div>`;
+      }
+      if (hg.warning) {
+        heatmapHTML += `<div class="heatmap-warn">⚠ ${hg.warning}</div>`;
+      }
+      heatmapHTML += '</div>';
+    }
+
     grid.innerHTML += `
       <div class="card">
         <div class="title">Layer 4 · Intraday <span style="font-weight:400">${id.allocation_pct*100}% alloc</span></div>
         <div class="value"><span class="status-dot ${dot}"></span>${dir} ${ttype.replace('type_','T')}</div>
         <div class="sub">${passed}/${total} checklist</div>
         <div class="detail">${id.details || ''}</div>
+        ${heatmapHTML}
         ${checklistHTML}
       </div>`;
   }

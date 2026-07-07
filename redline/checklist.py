@@ -128,6 +128,72 @@ def intraday_checklist(
     )
 
 
+def layer6_heatmap_checklist(
+    signal_direction: str,
+    heatmap_go: bool,
+    heatmap_reason: str,
+    heatmap_warning: str,
+    requires_manual_review: bool = False,
+    data_available: bool = False,
+    staleness_minutes: Optional[int] = None,
+) -> ChecklistResult:
+    """Layer 6: Heatmap entry gate checklist.
+
+    Final validation before pulling the trigger. Runs after L4 signal
+    generation, before execution routing.
+
+    Args:
+        signal_direction: Trade direction (LONG/SHORT/NONE).
+        heatmap_go: Whether heatmap gate allows entry.
+        heatmap_reason: Reason for go/no-go verdict.
+        heatmap_warning: Non-blocking warnings.
+        requires_manual_review: Whether visual verification is needed.
+        data_available: Whether heatmap data was available.
+        staleness_minutes: Minutes since last capture.
+
+    Returns:
+        ChecklistResult with pass/fail status.
+    """
+    items = {
+        "heatmap_data_available": data_available,
+        "heatmap_aligned": heatmap_go,
+        "manual_review_needed": not requires_manual_review,
+        "signal_direction_set": signal_direction in ("LONG", "SHORT"),
+    }
+
+    failed = [k for k, v in items.items() if not v]
+
+    # Heatmap unavailable is NOT a fail — it's a warning
+    if "heatmap_data_available" in failed and len(failed) == 1:
+        failed = []
+    # Manual review needed is a warning, not a hard fail
+    if "manual_review_needed" in failed:
+        failed.remove("manual_review_needed")
+
+    passed = len(failed) == 0
+
+    stale_str = f" | staleness: {staleness_minutes}m" if staleness_minutes else ""
+    details = (
+        f"L6 Heatmap: {'PASS' if passed else 'FAIL'}. "
+        f"Go={heatmap_go}, Dir={signal_direction}{stale_str}. "
+        f"{heatmap_reason}"
+    )
+
+    if heatmap_warning:
+        details += f" ⚠️ {heatmap_warning}"
+
+    if failed:
+        details += f". Failed: {', '.join(failed)}"
+
+    return ChecklistResult(
+        passed=passed,
+        items_checked=len(items),
+        items_passed=len(items) - len(failed),
+        failed_items=failed,
+        details=details,
+    )
+
+
 def end_of_day_checklist(
     positions_reviewed: bool = True,
     pnl_recorded: bool = True,

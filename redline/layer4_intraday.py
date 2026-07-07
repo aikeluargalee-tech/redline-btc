@@ -73,6 +73,189 @@ def load_config(config_path: str = CONFIG_PATH) -> dict:
         return yaml.safe_load(f)
 
 
+@dataclass
+class HeatmapCluster:
+    """A single liquidity cluster from the heatmap."""
+    price: float
+    distance_pct: float      # % from current price (positive=above, negative=below)
+    distance_usd: float
+    density: str             # "Dense 🔥" | "Moderate" | "Scattered" | "None"
+    cluster_width_usd: float
+
+
+@dataclass
+class HeatmapGateInput:
+    """Inputs for Layer 6 heatmap entry gate."""
+    signal_direction: IntradayDirection
+    current_price: float
+    nearest_above: Optional[HeatmapCluster] = None
+    nearest_below: Optional[HeatmapCluster] = None
+    cluster_spread_usd: Optional[float] = None
+    tightness: str = "Unknown"
+    vice_grip: bool = False
+    staleness_minutes: Optional[int] = None
+    data_available: bool = False
+    confidence: str = "Unknown"
+
+
+@dataclass
+class HeatmapGateOutput:
+    """Output of Layer 6 heatmap entry gate assessment."""
+    go: bool
+    reason: str
+    warning: str                # Non-blocking caveat
+    requires_manual_review: bool
+
+
+def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
+    """Layer 6: Validate L4 signal against live heatmap liquidity clusters.
+
+    GetClaw's rules:
+    1. Thick brick wall at entry level → respect it, don't trade through it
+    2. Thin cluster near entry → likely already swept, OK to enter
+    3. Staleness > 15 min on thin clusters → flag warning
+    4. Direction mismatch (long into overhead resistance cluster) → no-go
+    5. Vice Grip (< $500 spread) → breakout imminent, adjust entry accordingly
+    6. Dense clusters block, scattered clusters allow
+
+    Args:
+        inputs: HeatmapGateInput with current heatmap state.
+
+    Returns:
+        HeatmapGateOutput with go/no-go verdict.
+    """
+    # No heatmap data available — allow entry (can't gate what you can't see)
+    if not inputs.data_available:
+        return HeatmapGateOutput(
+            go=True,
+            reason="No heatmap data available — cannot validate, proceed with caution",
+            warning="Run V7 heatmap capture for Layer 6 validation",
+            requires_manual_review=True,
+        )
+
+    # Stale data — allow but warn
+    if inputs.staleness_minutes and inputs.staleness_minutes > 60:
+        return HeatmapGateOutput(
+            go=True,
+            reason=f"Heatmap data {inputs.staleness_minutes}m stale — treating as unavailable",
+            warning="Capture fresh heatmap before sizing up",
+            requires_manual_review=True,
+        )
+
+    warnings = []
+    blocks = []
+
+    direction = inputs.signal_direction
+
+    # Rule 1&2: Check cluster density at the entry direction
+    if direction == IntradayDirection.LONG:
+        # For longs: look at overhead cluster (nearest_above)
+        above = inputs.nearest_above
+        if above:
+            density = above.density
+            dist_pct = abs(above.distance_pct) if above.distance_pct else 0
+
+            # Thick brick wall near entry → block
+            if density in ("Dense 🔥",) and dist_pct <= 2.0:
+                blocks.append(
+                    f"Dense overhead cluster at ${above.price:,.0f} "
+                    f"(+{dist_pct:.1f}%) — wall unbroken, long entry blocked"
+                )
+            elif density in ("Moderate",) and dist_pct <= 1.0:
+                blocks.append(
+                    f"Moderate overhead cluster at ${above.price:,.0f} "
+                    f"(+{dist_pct:.1f}%) — tight proximity, wait for clearance"
+                )
+            elif density in ("Scattered",) and dist_pct <= 0.5:
+                warnings.append(
+                    f"Thin overhead cluster at ${above.price:,.0f} "
+                    f"(+{dist_pct:.1f}%) — likely already swept, monitor"
+                )
+
+        # Below cluster: check if support is thin
+        below = inputs.nearest_below
+        if below and below.density in ("Scattered",):
+            warnings.append(
+                f"Thin support at ${below.price:,.0f} "
+                f"({below.distance_pct:.1f}%) — may not hold on retest"
+            )
+
+    elif direction == IntradayDirection.SHORT:
+        # For shorts: look at support cluster (nearest_below)
+        below = inputs.nearest_below
+        if below:
+            density = below.density
+            dist_pct = abs(below.distance_pct) if below.distance_pct else 0
+
+            # Thick brick wall below → block
+            if density in ("Dense 🔥",) and dist_pct <= 2.0:
+                blocks.append(
+                    f"Dense support cluster at ${below.price:,.0f} "
+                    f"({below.distance_pct:.1f}%) — thick floor, short entry blocked"
+                )
+            elif density in ("Moderate",) and dist_pct <= 1.0:
+                blocks.append(
+                    f"Moderate support cluster at ${below.price:,.0f} "
+                    f"({below.distance_pct:.1f}%) — tight, wait for breakdown"
+                )
+            elif density in ("Scattered",) and dist_pct <= 0.5:
+                warnings.append(
+                    f"Thin support at ${below.price:,.0f} "
+                    f"({below.distance_pct:.1f}%) — likely breakable"
+                )
+
+        # Above cluster: check if resistance is thin
+        above = inputs.nearest_above
+        if above and above.density in ("Scattered",):
+            warnings.append(
+                f"Thin resistance at ${above.price:,.0f} "
+                f"(+{above.distance_pct:.1f}%) — not a reliable cap"
+            )
+
+    # Rule 5: Vice Grip check
+    if inputs.vice_grip:
+        warnings.append(
+            f"Vice Grip: cluster spread ≤ $500 — breakout imminent, "
+            f"use tight stops and expect volatility"
+        )
+
+    # Staleness warning on thin clusters
+    if inputs.staleness_minutes and inputs.staleness_minutes > 15:
+        has_thin = (
+            (inputs.nearest_above and inputs.nearest_above.density in ("Scattered",))
+            or (inputs.nearest_below and inputs.nearest_below.density in ("Scattered",))
+        )
+        if has_thin:
+            warnings.append(
+                f"Heatmap {inputs.staleness_minutes}m stale — "
+                f"thin clusters may have shifted"
+            )
+
+    # Confidence check
+    if inputs.confidence in ("vision_misread", "Low"):
+        warnings.append(
+            f"Low heatmap confidence ({inputs.confidence}) — "
+            f"verify visually before entry"
+        )
+
+    go = len(blocks) == 0
+    if blocks:
+        reason = "; ".join(blocks)
+    elif inputs.nearest_above is None and inputs.nearest_below is None:
+        reason = "No clusters near current price — no blocking liquidity"
+    else:
+        reason = "Heatmap alignment OK — no blocking clusters"
+    warning = "; ".join(warnings) if warnings else ""
+    requires_manual_review = bool(inputs.staleness_minutes and inputs.staleness_minutes > 15)
+
+    return HeatmapGateOutput(
+        go=go,
+        reason=reason,
+        warning=warning,
+        requires_manual_review=requires_manual_review,
+    )
+
+
 def check_entry_checklist(
     inputs: IntradayInputs,
     config: Optional[dict] = None

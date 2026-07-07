@@ -126,3 +126,17 @@ def fetch_enriched() -> dict:
 
     return enriched
 
+
+def fetch_heatmap() -> Optional[dict]:
+    """Fetch heatmap (Layer 6) data from the packet's heatmap section.
+
+    Reads from the published data.json which now includes the heatmap key
+    populated by packet_to_json.py → load_heatmap_data().
+
+    Returns None if packet fetch fails or heatmap section is missing.
+    """
+    p = fetch_packet()
+    if not p:
+        return None
+    return p.get("heatmap")
+
