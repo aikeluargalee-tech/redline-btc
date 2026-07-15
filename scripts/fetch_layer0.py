@@ -36,12 +36,14 @@ def fetch_live_data() -> dict:
     ctx = p.get("context", {})
     ref = p.get("reference", {})
 
-    mvrv_z = ref.get("cycle", {}).get("mvrv_z", 0.25)
-    composite = ref.get("cycle_composite", 25.0)
+    mvrv_z_raw = ref.get("cycle", {}).get("mvrv_z")
+    mvrv_z = float(mvrv_z_raw) if mvrv_z_raw is not None else 0.25
+    composite_raw = ref.get("cycle_composite")
+    composite = float(composite_raw) if composite_raw is not None else 25.0
     skew = ref.get("options_skew_25d", -5.0)
-    etf_weekly = ctx.get("etf_flow_weekly", 0.0)
-    premium = ctx.get("coinbase_premium", 0.0)
-    etf_daily = ctx.get("etf_flow_daily", 0.0)
+    etf_weekly = ctx.get("etf_flow_weekly", 0.0) or 0.0
+    premium = ctx.get("coinbase_premium", 0.0) or 0.0
+    etf_daily = ctx.get("etf_flow_daily", 0.0) or 0.0
 
     info = (
         f"Layer 0: MVRV-Z={mvrv_z:.3f}, "

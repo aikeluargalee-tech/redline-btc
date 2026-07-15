@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-07-15T09:02:35.618273",
+  "timestamp": "2026-07-04T12:14:24.046206",
   "regime": {
-    "regime": "TRANSITIONAL",
+    "regime": "BEAR",
     "confidence": 0.8,
-    "leverage_multiplier": 1.0,
-    "size_reduction": 0.75,
-    "details": "TRANSITIONAL regime: 0 bull / 1 bear signals. Reduced size, higher conviction required."
+    "leverage_multiplier": 0.5,
+    "size_reduction": 1.0,
+    "details": "BEAR regime: 4/5 bearish signals. Cycle=27.4, MVRV-Z=0.30, ETF=-234.0B"
   },
   "macro_risk": {
     "state": "ON",
@@ -17,22 +17,22 @@
     "status": "inactive \u2014 Layer 1 is Risk ON"
   },
   "positioning": {
-    "action": "none",
+    "action": "hold",
     "tranche": null,
     "amount_usd": 0.0,
     "btc_amount": 0.0,
-    "details": "Regime is TRANSITIONAL. No accumulation in non-bear regimes.",
-    "total_allocation_pct": 0.0
+    "details": "HOLD: Price 61708 not in any unfilled tranche range. Current position: 0.00000000 BTC.",
+    "total_allocation_pct": 0.4
   },
   "swing": {
     "direction": "NONE",
     "entry_allowed": false,
     "reasons": [
       "4H structure not in clear trend",
-      "ADX 42.0 >= 35 (overextended)",
+      "ADX 41.1 >= 35 (overextended)",
       "No clear directional alignment on 4H+1D"
     ],
-    "details": "Swing NONE: BLOCKED. 4H=neutral, 1D=bearish, ADX=42.0, CVD=negative. Reasons: 4H structure not in clear trend; ADX 42.0 >= 35 (overextended); No clear directional alignment on 4H+1D",
+    "details": "Swing NONE: BLOCKED. 4H=neutral, 1D=bearish, ADX=41.1, CVD=negative. Reasons: 4H structure not in clear trend; ADX 41.1 >= 35 (overextended); No clear directional alignment on 4H+1D",
     "allocation_pct": 0.2
   },
   "intraday": {
@@ -53,46 +53,36 @@
       "Checklist failed: mtf_alignment, cvd_invalidation"
     ],
     "details": "Intraday SHORT (type_a): BLOCKED. Checklist: 5/7 passed. Reasons: Checklist failed: mtf_alignment, cvd_invalidation",
-    "allocation_pct": 0.1,
-    "heatmap_gate": {
-      "go": true,
-      "reason": "No heatmap data available",
-      "warning": "Run V7 capture for Layer 6 validation",
-      "requires_manual_review": true,
-      "nearest_above": null,
-      "nearest_below": null,
-      "staleness_minutes": null,
-      "data_available": false
-    }
+    "allocation_pct": 0.1
   },
   "market_structure": {
     "momentum": "neutral",
-    "leverage": "normal",
+    "leverage": "elevated",
     "funding_bias": "neutral",
     "liquidation_risk": true,
     "volume_profile": "unknown",
     "volatility_regime": "elevated",
     "realized_vol_1h_pct": 58.54,
     "sentiment": "fear",
-    "fng_value": 25,
+    "fng_value": 22,
     "tail_risk": "low",
     "crash_score": 1,
-    "black_swan_score": 1,
+    "black_swan_score": 0,
     "liquidity_health": "healthy",
     "liquidity_verdict": "HEALTHY",
-    "nearest_support": 61250.0,
-    "nearest_resistance": 66250.0,
-    "support_distance_pct": 5.38,
-    "resistance_distance_pct": 2.34,
-    "atr_1d_pct": 2.84,
-    "atr_1h_pct": 0.49,
-    "btc_equity_correlation": 0.6177,
-    "correlation_signal": "risk_on_weak",
-    "oi_change_24h_pct": 0.03,
-    "oi_trend": "stable",
-    "cot_signal": "BEARISH \u2014 Lev funds net short",
+    "nearest_support": 62330.23,
+    "nearest_resistance": 63750.0,
+    "support_distance_pct": -1.01,
+    "resistance_distance_pct": 3.31,
+    "atr_1d_pct": 3.64,
+    "atr_1h_pct": 0.34,
+    "btc_equity_correlation": -0.4814,
+    "correlation_signal": "divergence",
+    "oi_change_24h_pct": -1.97,
+    "oi_trend": "unwinding",
+    "cot_signal": "NEUTRAL \u2014 No extreme positioning",
     "funding_signal": "POSITIVE",
-    "taker_buy_ratio": 0.527
+    "taker_buy_ratio": 0.525
   },
   "conflict_resolution": {
     "action": "allow",
@@ -116,30 +106,30 @@
     "risk_level": "normal",
     "triggered_signals": [],
     "crash_score": 1,
-    "black_swan_score": 1,
+    "black_swan_score": 0,
     "liquidity_verdict": "HEALTHY",
-    "dxy": 100.9
+    "dxy": 100.857
   },
   "onchain_brk": {
-    "nupl": 0.18119999766349792,
-    "rhodl_ratio": 0.12399999797344208,
-    "lth_sopr_24h": 0.7477782515939881,
-    "sth_sopr_24h": 1.0039999036592517,
-    "sopr_24h": 0.9924483801648126,
-    "supply_in_profit_share": 56.38999938964844,
-    "mvrv": 1.2214000225067139,
-    "realized_price": 52875.47,
-    "puell_multiple": 0.725600004196167,
-    "hash_rate_ehs": 9.356086200588159e+20,
-    "hash_rate_drawdown_pct": -31.490001678466797,
-    "fee_rate_sat_vb": 0.615,
-    "difficulty": 127170500429035.19,
-    "utxos_over_1y_sopr_24h": 1.3812982799211777,
-    "lth_net_realized_pnl": -91432.98,
-    "sth_net_realized_pnl": -675089.94
+    "nupl": 0.14920000731945038,
+    "rhodl_ratio": 0.12049999833106995,
+    "lth_sopr_24h": 0.9257225473916847,
+    "sth_sopr_24h": 1.0013149712871006,
+    "sopr_24h": 1.0008189960064044,
+    "supply_in_profit_share": 51.59000015258789,
+    "mvrv": 1.1754000186920166,
+    "realized_price": 53057.09,
+    "puell_multiple": 0.689300000667572,
+    "hash_rate_ehs": 1.0181700967594443e+21,
+    "hash_rate_drawdown_pct": -25.44000244140625,
+    "fee_rate_sat_vb": 0.403,
+    "difficulty": 133869853540305.39,
+    "utxos_over_1y_sopr_24h": 1.5438499471580154,
+    "lth_net_realized_pnl": -1356.88,
+    "sth_net_realized_pnl": 99515.49
   },
   "summary": {
-    "regime": "TRANSITIONAL",
+    "regime": "BEAR",
     "risk_state": "ON",
     "swing_direction": "NONE",
     "swing_allowed": false,

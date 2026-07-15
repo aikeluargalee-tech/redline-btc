@@ -7,12 +7,14 @@ Safe to run on cron — logs to stdout.
 
 import json
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(root))
+os.chdir(str(root))  # Ensure CWD is project root for config.yaml resolution
 
 from scripts.daily_run import run_daily_analysis
 

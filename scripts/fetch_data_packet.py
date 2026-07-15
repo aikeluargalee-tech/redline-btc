@@ -33,32 +33,43 @@ def fetch_live_data() -> dict:
     structure_1d = "bearish" if "1D BEARISH" in amt_mtf else ("bullish" if "1D BULLISH" in amt_mtf else "neutral")
     structure_4h = "bearish" if "4H BEARISH" in amt_mtf else ("bullish" if "4H BULLISH" in amt_mtf else "neutral")
 
+    def _sanitize_num(value, default=0):
+        """Coerce N/A strings to numeric defaults."""
+        if isinstance(value, str) and value.strip().upper() == "N/A":
+            return default
+        if isinstance(value, (int, float)):
+            return value
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+
     result = {
-        "btc_price": crit.get("btc_price", p.get("header", {}).get("btc_price", 61708)),
-        "amt_adx": crit.get("amt_adx", 0),
+        "btc_price": _sanitize_num(crit.get("btc_price", p.get("header", {}).get("btc_price", 61708)), 61708),
+        "amt_adx": _sanitize_num(crit.get("amt_adx", 0), 0),
         "amt_mtf": amt_mtf,
         "cvd_per_tf": crit.get("cvd_per_tf", {}),
         "oi_per_tf": crit.get("oi_per_tf", {}),
-        "session_cvd": crit.get("session_cvd", 0),
-        "oi_absolute_usd_billions": crit.get("oi_absolute_usd_billions", 0),
-        "taker_ratio_24h": crit.get("taker_ratio_24h", 1.0),
+        "session_cvd": _sanitize_num(crit.get("session_cvd", 0), 0),
+        "oi_absolute_usd_billions": _sanitize_num(crit.get("oi_absolute_usd_billions", 0), 0),
+        "taker_ratio_24h": _sanitize_num(crit.get("taker_ratio_24h", 1.0), 1.0),
         "vp_poc": crit.get("vp_poc"),
         "vp_vah": crit.get("vp_vah"),
         "vp_val": crit.get("vp_val"),
         "vp_shape": crit.get("vp_shape", ""),
         "vp_state": crit.get("vp_state", ""),
         "balance_state": crit.get("balance_state", ""),
-        "balance_width_pct": crit.get("balance_width_pct", 0),
+        "balance_width_pct": _sanitize_num(crit.get("balance_width_pct", 0), 0),
         "adx_regime": crit.get("adx_regime", ""),
-        "cvd_24h": ctx.get("cvd_24h", 0),
-        "funding_rate": ctx.get("funding_rate", 0),
-        "long_short_ratio": ctx.get("long_short_ratio", 1.0),
-        "perp_basis_pct": ctx.get("perp_basis_pct", 0),
+        "cvd_24h": _sanitize_num(ctx.get("cvd_24h", 0), 0),
+        "funding_rate": _sanitize_num(ctx.get("funding_rate", 0), 0),
+        "long_short_ratio": _sanitize_num(ctx.get("long_short_ratio", 1.0), 1.0),
+        "perp_basis_pct": _sanitize_num(ctx.get("perp_basis_pct", 0), 0),
         "liq_clusters": ctx.get("liq_clusters", ""),
-        "coinbase_premium": ctx.get("coinbase_premium", 0),
-        "vix": ctx.get("vix", 0),
-        "us10y": ctx.get("us10y", 0),
-        "fng_value": ctx.get("fng_value", 0),
+        "coinbase_premium": _sanitize_num(ctx.get("coinbase_premium", 0), 0),
+        "vix": _sanitize_num(ctx.get("vix", 0), 0),
+        "us10y": _sanitize_num(ctx.get("us10y", 0), 0),
+        "fng_value": _sanitize_num(ctx.get("fng_value", 0), 0),
         "order_book_top5": ctx.get("order_book_top5", {}),
         "structure_1d": structure_1d,
         "structure_4h": structure_4h,
