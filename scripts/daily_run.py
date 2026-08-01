@@ -448,7 +448,14 @@ def run_daily_analysis(mock: bool = False) -> dict:
         if brk:
             report["onchain_brk"] = brk
             hr_ehs = brk.get("hash_rate_ehs")
-            hr_readable = f"{hr_ehs / 1e18:.1f} EH/s" if hr_ehs else "N/A"
+            if hr_ehs is None:
+                hr_readable = "N/A"
+            else:
+                try:
+                    hr_ehs_f = float(hr_ehs)
+                    hr_readable = f"{hr_ehs_f / 1e18:.1f} EH/s"
+                except (TypeError, ValueError):
+                    hr_readable = "N/A"
             logger.info("BRK On-Chain: NUPL=%.3f LTH-SOPR=%.4f RHODL=%.3f HashRate=%s",
                          brk.get("nupl", 0), brk.get("lth_sopr_24h", 0),
                          brk.get("rhodl_ratio", 0), hr_readable)

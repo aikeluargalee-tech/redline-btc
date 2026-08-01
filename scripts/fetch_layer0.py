@@ -51,7 +51,7 @@ def fetch_live_data() -> dict:
     mvrv_z = _safe_float(mvrv_z_raw, 0.25)
     composite_raw = ref.get("cycle_composite")
     composite = _safe_float(composite_raw, 25.0)
-    skew = ref.get("options_skew_25d", -5.0)
+    skew = _safe_float(ref.get("options_skew_25d"), -5.0)
     # ETF flows arrive in MILLIONS from the packet (mock -9706.0 = -$9.7B);
     # config thresholds are in BILLIONS (-1.0 / +0.5). Normalize once here.
     etf_weekly_m = _safe_float(ctx.get("etf_flow_weekly"), 0.0)

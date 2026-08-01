@@ -1,6 +1,12 @@
 {
-  "timestamp": "2026-08-01T14:00:42.768805",
-  "regime": null,
+  "timestamp": "2026-08-01T14:45:05.677920",
+  "regime": {
+    "regime": "TRANSITIONAL",
+    "confidence": 0.8,
+    "leverage_multiplier": 1.0,
+    "size_reduction": 0.75,
+    "details": "TRANSITIONAL regime: 0 bull / 1 bear signals. Reduced size, higher conviction required."
+  },
   "macro_risk": {
     "state": "OFF",
     "triggered_by": [
@@ -63,10 +69,10 @@
   },
   "market_structure": {
     "momentum": "bearish",
-    "leverage": "extreme",
+    "leverage": "elevated",
     "funding_bias": "neutral",
     "liquidation_risk": true,
-    "volume_profile": "REJECTION_UP",
+    "volume_profile": "ACCEPTANCE",
     "volatility_regime": "elevated",
     "realized_vol_1h_pct": 58.54,
     "sentiment": "fear",
@@ -78,13 +84,13 @@
     "liquidity_verdict": "HEALTHY",
     "nearest_support": 62500.0,
     "nearest_resistance": 66587.05,
-    "support_distance_pct": 0.92,
-    "resistance_distance_pct": 5.56,
+    "support_distance_pct": 0.96,
+    "resistance_distance_pct": 5.51,
     "atr_1d_pct": 2.42,
     "atr_1h_pct": 0.15,
-    "btc_equity_correlation": -0.4873,
+    "btc_equity_correlation": -0.4888,
     "correlation_signal": "divergence",
-    "oi_change_24h_pct": 3.02,
+    "oi_change_24h_pct": 2.67,
     "oi_trend": "stable",
     "cot_signal": "NEUTRAL",
     "funding_signal": "NEUTRAL",
@@ -105,10 +111,8 @@
       "status": "No entry signal"
     }
   },
-  "overall_status": "DEGRADED",
-  "errors": [
-    "Layer 0: '>' not supported between instances of 'str' and 'float'"
-  ],
+  "overall_status": "OPERATIONAL",
+  "errors": [],
   "enriched_override": false,
   "enriched_risk": {
     "risk_level": "normal",
@@ -144,6 +148,6 @@
     "intraday_direction": "NONE",
     "intraday_allowed": false,
     "conflict_action": "allow",
-    "errors": 1
+    "errors": 0
   }
 }
