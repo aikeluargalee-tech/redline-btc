@@ -191,7 +191,7 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
 
         # Below cluster: check if support is thin
         below = inputs.nearest_below
-        if below and below._norm_density(density) == "scattered":
+        if below and _norm_density(below.density) == "scattered":
             warnings.append(
                 f"Thin support at ${below.price:,.0f} "
                 f"({below.distance_pct:.1f}%) — may not hold on retest"
@@ -223,7 +223,7 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
 
         # Above cluster: check if resistance is thin
         above = inputs.nearest_above
-        if above and above._norm_density(density) == "scattered":
+        if above and _norm_density(above.density) == "scattered":
             warnings.append(
                 f"Thin resistance at ${above.price:,.0f} "
                 f"(+{above.distance_pct:.1f}%) — not a reliable cap"
@@ -239,8 +239,8 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
     # Staleness warning on thin clusters
     if inputs.staleness_minutes and inputs.staleness_minutes > 15:
         has_thin = (
-            (inputs.nearest_above and inputs.nearest_above._norm_density(density) == "scattered")
-            or (inputs.nearest_below and inputs.nearest_below._norm_density(density) == "scattered")
+            (inputs.nearest_above and _norm_density(inputs.nearest_above.density) == "scattered")
+            or (inputs.nearest_below and _norm_density(inputs.nearest_below.density) == "scattered")
         )
         if has_thin:
             warnings.append(

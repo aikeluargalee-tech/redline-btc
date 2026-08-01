@@ -63,9 +63,12 @@ def fetch_live_data() -> dict:
     mstr_close = _safe_float(ctx.get("mstr_close"), 100.0)
     usdjpy = ctx.get("usdjpy")
 
-    # Persisted session state (counters + USDJPY prior)
+    # Persisted session state (counters + USDJPY prior).
+    # Tolerant of legacy format: older writers stored l1_state as a bare string
+    # ("OFF") instead of a dict — treat that as empty (Codex N1).
     state = _load_state()
-    l1_state = state.get("l1_state", {})
+    l1_state_raw = state.get("l1_state", {})
+    l1_state = l1_state_raw if isinstance(l1_state_raw, dict) else {}
 
     # USD/JPY delta vs prior run
     usdjpy_price = _safe_float(usdjpy, 150.0) if usdjpy is not None else None
@@ -77,15 +80,29 @@ def fetch_live_data() -> dict:
         except (ValueError, TypeError, ZeroDivisionError):
             usdjpy_change_pct = 0.0
 
-    # Session counters — increment while condition holds, reset otherwise
+    # Session counters — increment while condition holds, reset otherwise.
+    # Thresholds from config (Codex: 28.0 hardcoded vs config 25.0).
+    try:
+        import yaml
+        _cfg = yaml.safe_load(open(STATE_PATH.parent / "config.yaml")) or {}
+        _l1 = _cfg.get("layer1", {}) or {}
+    except Exception:
+        _l1 = {}
+    vix_sustained_above = float(_l1.get("vix_sustained_above", 25.0))
+    mstr_below_level = float(_l1.get("mstr_daily_close_below", 75.0))
     mstr_sessions_below = int(l1_state.get("mstr_sessions_below", 0))
     vix_sessions_above = int(l1_state.get("vix_sessions_above", 0))
-    mstr_sessions_below = mstr_sessions_below + 1 if mstr_close < 75.0 else 0
-    vix_sessions_above = vix_sessions_above + 1 if vix > 28.0 else 0
+    mstr_sessions_below = mstr_sessions_below + 1 if mstr_close < mstr_below_level else 0
+    vix_sessions_above = vix_sessions_above + 1 if vix > vix_sustained_above else 0
 
-    # USDJPY stability hours — count consecutive runs within 0.5% delta
+    # USDJPY stability hours — count consecutive stable runs. daily_run runs
+    # once per day, so each consecutive stable run ≈ 24h (Codex: was counting
+    # runs as hours — 24x undercount).
     stable_hours = int(l1_state.get("usdjpy_stable_hours", 0))
-    stable_hours = min(stable_hours + 1, 72) if abs(usdjpy_change_pct) < 0.5 else 0
+    if abs(usdjpy_change_pct) < 0.5:
+        stable_hours = min(stable_hours + 24, 72)
+    else:
+        stable_hours = 0
 
     result = {
         "mstr_close": mstr_close,

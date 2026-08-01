@@ -108,6 +108,7 @@ def fetch_enriched() -> dict:
     packet = fetch_packet() or {}
     enriched_pkt = packet.get("enriched", {}) if packet else {}
     critical_pkt = packet.get("critical", {}) if packet else {}
+    context_pkt = packet.get("context", {}) if packet else {}
 
     if not enriched_pkt:
         logger.warning("Packet 'enriched' section missing — returning defaults")
@@ -154,8 +155,13 @@ def fetch_enriched() -> dict:
         "atr_1d_pct": enriched_pkt.get("atr_1d_pct", 0.0),
         "btc_price": enriched_pkt.get("btc_price", 0),
 
-        # L5 momentum inputs — from packet critical/enriched (were missing → L5 momentum always neutral)
-        "cvd_24h": _to_float(enriched_pkt.get("cvd_24h", critical_pkt.get("cvd_per_tf", {}).get("1D", 0))),
+        # L5 momentum inputs — real CVD lives in packet.context.cvd_24h
+        # (critical.cvd_per_tf is per-timeframe and often "N/A") (Codex N3)
+        "cvd_24h": _to_float(
+            enriched_pkt.get("cvd_24h",
+                context_pkt.get("cvd_24h",
+                    critical_pkt.get("cvd_per_tf", {}).get("1D", 0)))
+        ),
         "taker_ratio_24h": _to_float(enriched_pkt.get("taker_ratio_24h", critical_pkt.get("taker_ratio_24h", 1.0)), 1.0),
         "vp_state": enriched_pkt.get("vp_state", critical_pkt.get("vp_state", "unknown")),
         "oi_absolute_usd_billions": _to_float(enriched_pkt.get("oi_absolute_usd_billions", critical_pkt.get("oi_absolute_usd_billions", 0))),

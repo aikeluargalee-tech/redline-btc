@@ -96,8 +96,13 @@ def main():
         )
         logger.info("Enriched risk CRITICAL (alert sent)")
 
-    # Save current state for next comparison
-    _save_state({"l1_state": current_state, "enriched_risk_level": curr_er})
+    # Save current state for next comparison — MERGE with existing state so
+    # other writers' keys (fetch_layer1's l1_state dict, daily_run's layer2
+    # tranche fills) are preserved, not clobbered (Codex N1).
+    prev_full = _load_prev_state()
+    prev_full["l1_state"] = current_state
+    prev_full["enriched_risk_level"] = curr_er
+    _save_state(prev_full)
 
     # --- Push to GitHub ---
     result = subprocess.run(

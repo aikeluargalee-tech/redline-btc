@@ -200,10 +200,16 @@ def run_daily_analysis(mock: bool = False) -> dict:
         # tranche every day; a tranche stays filled once its range has been hit.
         state_l2 = _load_state().get("layer2", {})
         tranches_filled = [t for t in state_l2.get("tranches_filled", []) if t]
+        try:
+            import yaml
+            _l2cfg = yaml.safe_load(open(Path(__file__).parent.parent / "config.yaml")) or {}
+        except Exception:
+            _l2cfg = {}
+        l2_balance = float((_l2cfg.get("sizing") or {}).get("account_balance_usd", 100_000))
         pos_input = PositioningInput(
             regime=Regime(regime_val),
             btc_price=btc_price,
-            total_capital=100_000,
+            total_capital=l2_balance,  # from config (M7 — was hardcoded $100K)
             current_position=0.0,
             tranches_filled=tranches_filled,
         )

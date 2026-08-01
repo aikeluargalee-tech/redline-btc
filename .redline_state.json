@@ -1,1 +1,1 @@
-{"l1_state": "OFF", "enriched_risk_level": "normal"}
+{"l1_state": {"usdjpy_price": 157.4, "mstr_sessions_below": 0, "vix_sessions_above": 0, "usdjpy_stable_hours": 24}, "enriched_risk_level": "normal"}
