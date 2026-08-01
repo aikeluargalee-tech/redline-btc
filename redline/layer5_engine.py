@@ -5,6 +5,8 @@ plus enriched signals from pipeline files (crash, structural, sentiment, liquidi
 
 Produces: momentum, leverage, funding bias, volatility regime, sentiment overlay,
 support/resistance levels, liquidity health, crash risk.
+
+Thresholds moved to config.yaml layer5 section (M1).
 """
 
 from __future__ import annotations
@@ -14,6 +16,32 @@ import logging
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# Fallback defaults (used only if config.yaml cannot be loaded)
+_L5_DEFAULTS = {
+    "cvd_bullish": 200.0, "cvd_bearish": -200.0,
+    "vol_high": 80.0, "vol_elevated": 50.0, "vol_normal": 20.0,
+    "oi_extreme": 3.0, "oi_elevated": 1.0,
+    "funding_extreme": 0.0005,
+    "fng_extreme_fear": 15.0, "fng_fear": 35.0, "fng_greed": 55.0, "fng_extreme_greed": 75.0,
+    "tail_high_bs": 10.0, "tail_elevated_bs": 5.0, "tail_high_crash": 4.0, "tail_elevated_crash": 2.0,
+    "corr_strong": 0.7, "corr_weak": 0.4,
+    "dxy_stress": 106.0,
+}
+
+
+def _l5_cfg() -> dict:
+    """Load L5 thresholds from config.yaml layer5 section (fallback to defaults)."""
+    try:
+        import yaml
+        from pathlib import Path
+        cfg = yaml.safe_load(open(Path(__file__).parent.parent / "config.yaml"))
+        l5 = (cfg or {}).get("layer5", {}) or {}
+        merged = dict(_L5_DEFAULTS)
+        merged.update({k: v for k, v in l5.items() if v is not None})
+        return merged
+    except Exception:
+        return dict(_L5_DEFAULTS)
 
 
 def analyze_enriched(enriched: dict) -> dict:
@@ -32,12 +60,13 @@ def analyze_enriched(enriched: dict) -> dict:
     taker_ratio = enriched.get("taker_ratio_24h", 1.0)
     corr_r = enriched.get("correlation_r", 0.0)
     realized_vol = enriched.get("realized_vol_1h_pct", 0.0)
+    _cfg = _l5_cfg()
 
     # Momentum direction
     if isinstance(cvd_24h, (int, float)):
-        if cvd_24h > 200:
+        if cvd_24h > _cfg["cvd_bullish"]:
             momentum = "bullish"
-        elif cvd_24h < -200:
+        elif cvd_24h < _cfg["cvd_bearish"]:
             momentum = "bearish"
         elif cvd_24h > 0:
             momentum = "slightly_bullish"
@@ -49,11 +78,11 @@ def analyze_enriched(enriched: dict) -> dict:
         momentum = "neutral"
 
     # --- Volatility regime ---
-    if realized_vol > 80:
+    if realized_vol > _cfg["vol_high"]:
         vol_regime = "high"
-    elif realized_vol > 50:
+    elif realized_vol > _cfg["vol_elevated"]:
         vol_regime = "elevated"
-    elif realized_vol > 20:
+    elif realized_vol > _cfg["vol_normal"]:
         vol_regime = "normal"
     else:
         vol_regime = "low"
@@ -63,9 +92,9 @@ def analyze_enriched(enriched: dict) -> dict:
     oi_abs = enriched.get("oi_absolute_usd_billions", 0)
     oi_trend = enriched.get("oi_trend", "flat")
     if isinstance(oi_change, (int, float)):
-        if abs(oi_change) > 3.0:
+        if abs(oi_change) > _cfg["oi_extreme"]:
             leverage = "extreme"
-        elif abs(oi_change) > 1.0:
+        elif abs(oi_change) > _cfg["oi_elevated"]:
             leverage = "elevated"
         else:
             leverage = "normal"
@@ -75,9 +104,9 @@ def analyze_enriched(enriched: dict) -> dict:
     # --- Funding ---
     funding = enriched.get("funding_rate", 0)
     if isinstance(funding, (int, float)):
-        if funding < -0.0005:
+        if funding < -_cfg["funding_extreme"]:
             funding_bias = "short"
-        elif funding > 0.0005:
+        elif funding > _cfg["funding_extreme"]:
             funding_bias = "long"
         else:
             funding_bias = "neutral"
@@ -89,13 +118,13 @@ def analyze_enriched(enriched: dict) -> dict:
     fng_value = 0
     if isinstance(fng, (int, float)):
         fng_value = fng
-        if fng <= 15:
+        if fng <= _cfg["fng_extreme_fear"]:
             sentiment_label = "extreme_fear"
-        elif fng <= 35:
+        elif fng <= _cfg["fng_fear"]:
             sentiment_label = "fear"
-        elif fng <= 55:
+        elif fng <= _cfg["fng_greed"]:
             sentiment_label = "neutral"
-        elif fng <= 75:
+        elif fng <= _cfg["fng_extreme_greed"]:
             sentiment_label = "greed"
         else:
             sentiment_label = "extreme_greed"
@@ -134,22 +163,22 @@ def analyze_enriched(enriched: dict) -> dict:
     crash_score = enriched.get("crash_score", 0)
     black_swan_score = enriched.get("black_swan_score", 0)
 
-    if black_swan_score >= 10 or crash_score >= 4:
+    if black_swan_score >= _cfg["tail_high_bs"] or crash_score >= _cfg["tail_high_crash"]:
         tail_risk = "high"
-    elif black_swan_score >= 5 or crash_score >= 2:
+    elif black_swan_score >= _cfg["tail_elevated_bs"] or crash_score >= _cfg["tail_elevated_crash"]:
         tail_risk = "elevated"
     else:
         tail_risk = "low"
 
     # --- Cross-asset correlation signal ---
     if isinstance(corr_r, (int, float)):
-        if corr_r < -0.7:
+        if corr_r < -_cfg["corr_strong"]:
             correlation_signal = "strong_divergence"
-        elif corr_r < -0.4:
+        elif corr_r < -_cfg["corr_weak"]:
             correlation_signal = "divergence"
-        elif corr_r > 0.7:
+        elif corr_r > _cfg["corr_strong"]:
             correlation_signal = "risk_on"
-        elif corr_r > 0.4:
+        elif corr_r > _cfg["corr_weak"]:
             correlation_signal = "risk_on_weak"
         else:
             correlation_signal = "neutral"
@@ -200,6 +229,7 @@ def check_enriched_risk_signals(enriched: dict) -> dict:
     """
     triggered = []
     risk_level = "normal"
+    _cfg = _l5_cfg()
 
     crash_score = enriched.get("crash_score", 0)
     black_swan = enriched.get("black_swan_score", 0)
@@ -207,16 +237,22 @@ def check_enriched_risk_signals(enriched: dict) -> dict:
     dxy = enriched.get("dxy", 100.0)
     realized_vol = enriched.get("realized_vol_1d_pct", 0)
 
-    if crash_score >= 3:
+    if crash_score >= _cfg["tail_high_crash"]:
+        triggered.append(f"Crash precursor high ({crash_score}/5)")
+        risk_level = "high"
+    elif crash_score >= _cfg["tail_elevated_crash"]:
         triggered.append(f"Crash precursor elevated ({crash_score}/5)")
         risk_level = "elevated"
-    if black_swan >= 8:
+    if black_swan >= _cfg["tail_high_bs"]:
+        triggered.append(f"Black swan risk high ({black_swan}/17)")
+        risk_level = "high"
+    elif black_swan >= _cfg["tail_elevated_bs"]:
         triggered.append(f"Black swan risk elevated ({black_swan}/17)")
         risk_level = "elevated"
     if liquidity in ("STRESSED", "CRITICAL"):
         triggered.append(f"Liquidity {liquidity}")
         risk_level = "elevated"
-    if isinstance(dxy, (int, float)) and dxy > 106:
+    if isinstance(dxy, (int, float)) and dxy > _cfg["dxy_stress"]:
         triggered.append(f"DXY strength ({dxy}) — dollar stress")
         risk_level = "elevated"
     if realized_vol > 100:

@@ -107,6 +107,23 @@ class HeatmapGateOutput:
     requires_manual_review: bool
 
 
+def _norm_density(d: str) -> str:
+    """Normalize heatmap density strings — packet format may vary
+    ('Dense 🔥', 'dense', 'DENSE', 'Moderate', 'scattered', etc.). (M3)"""
+    if not d:
+        return ""
+    s = str(d).strip().lower().replace("🔥", "").replace("🔥", "").strip()
+    if "dense" in s:
+        return "dense"
+    if "moderate" in s or "medium" in s:
+        return "moderate"
+    if "scatter" in s or "thin" in s:
+        return "scattered"
+    if "none" in s or not s:
+        return "none"
+    return s
+
+
 def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
     """Layer 6: Validate L4 signal against live heatmap liquidity clusters.
 
@@ -156,17 +173,17 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
             dist_pct = abs(above.distance_pct) if above.distance_pct else 0
 
             # Thick brick wall near entry → block
-            if density in ("Dense 🔥",) and dist_pct <= 2.0:
+            if _norm_density(density) == "dense" and dist_pct <= 2.0:
                 blocks.append(
                     f"Dense overhead cluster at ${above.price:,.0f} "
                     f"(+{dist_pct:.1f}%) — wall unbroken, long entry blocked"
                 )
-            elif density in ("Moderate",) and dist_pct <= 1.0:
+            elif _norm_density(density) == "moderate" and dist_pct <= 1.0:
                 blocks.append(
                     f"Moderate overhead cluster at ${above.price:,.0f} "
                     f"(+{dist_pct:.1f}%) — tight proximity, wait for clearance"
                 )
-            elif density in ("Scattered",) and dist_pct <= 0.5:
+            elif _norm_density(density) == "scattered" and dist_pct <= 0.5:
                 warnings.append(
                     f"Thin overhead cluster at ${above.price:,.0f} "
                     f"(+{dist_pct:.1f}%) — likely already swept, monitor"
@@ -174,7 +191,7 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
 
         # Below cluster: check if support is thin
         below = inputs.nearest_below
-        if below and below.density in ("Scattered",):
+        if below and below._norm_density(density) == "scattered":
             warnings.append(
                 f"Thin support at ${below.price:,.0f} "
                 f"({below.distance_pct:.1f}%) — may not hold on retest"
@@ -188,17 +205,17 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
             dist_pct = abs(below.distance_pct) if below.distance_pct else 0
 
             # Thick brick wall below → block
-            if density in ("Dense 🔥",) and dist_pct <= 2.0:
+            if _norm_density(density) == "dense" and dist_pct <= 2.0:
                 blocks.append(
                     f"Dense support cluster at ${below.price:,.0f} "
                     f"({below.distance_pct:.1f}%) — thick floor, short entry blocked"
                 )
-            elif density in ("Moderate",) and dist_pct <= 1.0:
+            elif _norm_density(density) == "moderate" and dist_pct <= 1.0:
                 blocks.append(
                     f"Moderate support cluster at ${below.price:,.0f} "
                     f"({below.distance_pct:.1f}%) — tight, wait for breakdown"
                 )
-            elif density in ("Scattered",) and dist_pct <= 0.5:
+            elif _norm_density(density) == "scattered" and dist_pct <= 0.5:
                 warnings.append(
                     f"Thin support at ${below.price:,.0f} "
                     f"({below.distance_pct:.1f}%) — likely breakable"
@@ -206,7 +223,7 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
 
         # Above cluster: check if resistance is thin
         above = inputs.nearest_above
-        if above and above.density in ("Scattered",):
+        if above and above._norm_density(density) == "scattered":
             warnings.append(
                 f"Thin resistance at ${above.price:,.0f} "
                 f"(+{above.distance_pct:.1f}%) — not a reliable cap"
@@ -222,8 +239,8 @@ def assess_heatmap_gate(inputs: HeatmapGateInput) -> HeatmapGateOutput:
     # Staleness warning on thin clusters
     if inputs.staleness_minutes and inputs.staleness_minutes > 15:
         has_thin = (
-            (inputs.nearest_above and inputs.nearest_above.density in ("Scattered",))
-            or (inputs.nearest_below and inputs.nearest_below.density in ("Scattered",))
+            (inputs.nearest_above and inputs.nearest_above._norm_density(density) == "scattered")
+            or (inputs.nearest_below and inputs.nearest_below._norm_density(density) == "scattered")
         )
         if has_thin:
             warnings.append(

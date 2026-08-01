@@ -76,6 +76,7 @@ layer2:
 # Layer 3 - Swing Trading
 layer3:
   allocation_pct: 0.20
+  stop_loss_pct: 0.03  # M7 — swing stop (was hardcoded 3% in daily_run)
   timeframe_days: [2, 10]
   entry_requirements:
     structure_break_reclaim: true
@@ -94,6 +95,7 @@ layer3:
 # Layer 4 - Intraday
 layer4:
   allocation_pct: 0.10
+  stop_loss_pct: 0.01  # M7 — intraday stop (was hardcoded 3% in daily_run)
   timeframe: "hours"
   entry_checklist:
     adx_direction: true
@@ -126,6 +128,7 @@ conflict_resolution:
 sizing:
   base_risk_pct: 0.01  # 1% per trade
   max_position_size_usd: 100000
+  account_balance_usd: 100000  # M7 — no more hardcoded $100K in daily_run
   layer_multipliers:
     layer2: 1.0
     layer3: 0.7
@@ -138,6 +141,28 @@ sizing:
     layer2_daily: 0.02
     layer3_daily: 0.015
     layer4_daily: 0.01
+
+# Layer 5 - Analysis Engine thresholds (M1 — moved from hardcoded values)
+layer5:
+  cvd_bullish: 200.0
+  cvd_bearish: -200.0
+  vol_high: 80.0
+  vol_elevated: 50.0
+  vol_normal: 20.0
+  oi_extreme: 3.0
+  oi_elevated: 1.0
+  funding_extreme: 0.0005
+  fng_extreme_fear: 15.0
+  fng_fear: 35.0
+  fng_greed: 55.0
+  fng_extreme_greed: 75.0
+  tail_high_bs: 10.0
+  tail_elevated_bs: 5.0
+  tail_high_crash: 4.0
+  tail_elevated_crash: 2.0
+  corr_strong: 0.7
+  corr_weak: 0.4
+  dxy_stress: 106.0
 
 # Data Sources
 data_sources:

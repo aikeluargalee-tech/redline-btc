@@ -163,12 +163,14 @@ def layer6_heatmap_checklist(
 
     failed = [k for k, v in items.items() if not v]
 
+    # Manual review needed is a warning, not a hard fail — remove first so the
+    # no-data combo (data_available=False + requires_manual_review=True) is
+    # correctly treated as a warning, not a fail (M8).
+    if "manual_review_needed" in failed:
+        failed.remove("manual_review_needed")
     # Heatmap unavailable is NOT a fail — it's a warning
     if "heatmap_data_available" in failed and len(failed) == 1:
         failed = []
-    # Manual review needed is a warning, not a hard fail
-    if "manual_review_needed" in failed:
-        failed.remove("manual_review_needed")
 
     passed = len(failed) == 0
 

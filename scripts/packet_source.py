@@ -33,11 +33,29 @@ def _to_float(val, default=0.0):
 logger = logging.getLogger(__name__)
 
 
-def fetch_packet() -> Optional[dict]:
-    """Fetch the BTC Data Packet JSON (primary aggregated source)."""
+_PACKET_CACHE: Optional[dict] = None
+_PACKET_CACHE_TS: float = 0.0
+_PACKET_CACHE_TTL = 45.0  # seconds — one run shares one snapshot (M9)
+
+
+def fetch_packet(use_cache: bool = True) -> Optional[dict]:
+    """Fetch the BTC Data Packet JSON (primary aggregated source).
+
+    Cached for _PACKET_CACHE_TTL seconds within a process — a single
+    daily_run execution makes ~8-10 fetch_* calls; without caching each
+    downloads the full packet separately and two calls can see different
+    snapshots (M9). Pass use_cache=False to force a fresh fetch.
+    """
+    global _PACKET_CACHE, _PACKET_CACHE_TS
+    import time as _time
+    if use_cache and _PACKET_CACHE is not None and (_time.time() - _PACKET_CACHE_TS) < _PACKET_CACHE_TTL:
+        return _PACKET_CACHE
     try:
         with urllib.request.urlopen(PACKET_URL, timeout=15) as r:
             data: dict = json.loads(r.read())
+        if use_cache:
+            _PACKET_CACHE = data
+            _PACKET_CACHE_TS = _time.time()
         return data
     except (urllib.error.URLError, json.JSONDecodeError, OSError) as e:
         logger.warning("Packet fetch failed from %s: %s", PACKET_URL, e)

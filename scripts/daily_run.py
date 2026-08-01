@@ -38,6 +38,24 @@ from redline.conflict_resolver import ConflictInput, resolve_conflicts
 from redline.sizing import SizingInput, calculate_position_size, check_loss_limit
 from redline.checklist import pre_session_checklist, layer6_heatmap_checklist
 
+STATE_PATH = Path(__file__).parent.parent / ".redline_state.json"
+
+
+def _load_state() -> dict:
+    try:
+        with open(STATE_PATH) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_state(state: dict) -> None:
+    try:
+        with open(STATE_PATH, "w") as f:
+            json.dump(state, f)
+    except OSError:
+        logger.warning("Could not persist state")
+
 from scripts.packet_source import fetch_enriched, fetch_brk, fetch_heatmap
 from scripts.fetch_layer0 import fetch_mock_data as fetch_l0_mock, fetch_live_data as fetch_l0_live
 from scripts.fetch_layer1 import fetch_mock_data as fetch_l1_mock, fetch_live_data as fetch_l1_live
@@ -106,6 +124,7 @@ def run_daily_analysis(mock: bool = False) -> dict:
         regime_val = "TRANSITIONAL"
 
     # ----- Layer 1 — Macro Risk -----
+    risk_state_val = "RISK_ON"  # defensive default — never unbound (M10)
     try:
         l1_fields = {"mstr_close", "vix_current", "us10y_current", "usdjpy_change_pct",
                      "boj_verbal_response", "mstr_sessions_below", "vix_sessions_above",
@@ -177,12 +196,16 @@ def run_daily_analysis(mock: bool = False) -> dict:
     btc_price = 62000.0  # fallback
     try:
         btc_price = dp_data.get("btc_price", l3_data.get("btc_price", 62000))
+        # Load persisted tranche fills (M5) — prevents re-accumulating the same
+        # tranche every day; a tranche stays filled once its range has been hit.
+        state_l2 = _load_state().get("layer2", {})
+        tranches_filled = [t for t in state_l2.get("tranches_filled", []) if t]
         pos_input = PositioningInput(
             regime=Regime(regime_val),
             btc_price=btc_price,
             total_capital=100_000,
             current_position=0.0,
-            tranches_filled=[],
+            tranches_filled=tranches_filled,
         )
         pos_out = assess_positioning(pos_input)
         report["positioning"] = {
@@ -193,7 +216,14 @@ def run_daily_analysis(mock: bool = False) -> dict:
             "details": pos_out.details,
             "total_allocation_pct": pos_out.total_allocation_pct,
         }
-        logger.info("Layer 2: %s", pos_out.action)
+        # Persist: when a tranche accumulates, mark it filled
+        if pos_out.action == "accumulate" and pos_out.tranche is not None:
+            filled = set(tranches_filled)
+            filled.add(pos_out.tranche.name)
+            state_l2 = _load_state()
+            state_l2["layer2"] = {"tranches_filled": sorted(filled)}
+            _save_state(state_l2)
+        logger.info("Layer 2: %s (tranches filled: %s)", pos_out.action, tranches_filled)
     except Exception as e:
         report["errors"].append(f"Layer 2: {e}")
         logger.error("Layer 2 failed: %s", e)
@@ -469,6 +499,26 @@ def run_daily_analysis(mock: bool = False) -> dict:
             "layer4": report.get("intraday", {}).get("entry_allowed", False),
         }
         size_mult = conflict_out.size_multiplier if conflict_out else 1.0
+        # Load config for capital + stop parameters (M7) — no more hardcoded $100K/3%
+        import yaml
+        try:
+            with open(Path(__file__).parent.parent / "config.yaml") as _cf:
+                cfg = yaml.safe_load(_cf)
+        except Exception:
+            cfg = {}
+        account_balance = float((cfg.get("sizing") or {}).get("account_balance_usd", 100_000))
+        l3_stop_pct = float((cfg.get("layer3") or {}).get("stop_loss_pct", 0.03))
+        l4_stop_pct = float((cfg.get("layer4") or {}).get("stop_loss_pct", 0.01))
+        # Daily loss limit check (M6) — Rule 5 capital isolation enforced here.
+        # Pipeline has no position tracking yet, so pass 0.0 (fresh day) — the
+        # call validates wiring and blocks once P&L tracking lands.
+        can_trade, remaining = check_loss_limit("layer4", daily_loss_pct=0.0)
+        if not can_trade:
+            report["sizing"]["daily_loss_limit"] = {
+                "status": "BLOCKED",
+                "reason": f"Layer 4 daily loss limit exhausted (remaining {remaining:.1f}%)",
+            }
+            logger.warning("Sizing: L4 daily loss limit exhausted")
         for layer_name, active in layers_to_size.items():
             if not active:
                 report["sizing"][layer_name] = {"status": "No entry signal"}
@@ -477,14 +527,16 @@ def run_daily_analysis(mock: bool = False) -> dict:
             # Determine trade direction for stop loss calculation
             if layer_name == "layer3":
                 trade_dir = report.get("swing", {}).get("direction", "NONE")
+                stop_pct = l3_stop_pct
             else:  # layer4
                 trade_dir = report.get("intraday", {}).get("direction", "NONE")
-            stop_loss_price = btc_price * 1.03 if trade_dir == "SHORT" else btc_price * 0.97
+                stop_pct = l4_stop_pct
+            stop_loss_price = btc_price * (1 + stop_pct) if trade_dir == "SHORT" else btc_price * (1 - stop_pct)
 
             sizing_input = SizingInput(
                 layer_name=layer_name,
                 regime=Regime(regime_val),
-                account_balance=100_000,
+                account_balance=account_balance,
                 entry_price=btc_price,
                 stop_loss_price=stop_loss_price,
                 conflict_size_multiplier=size_mult,
@@ -498,7 +550,8 @@ def run_daily_analysis(mock: bool = False) -> dict:
                 "leverage": size_out.leverage,
                 "details": size_out.details,
             }
-        logger.info("Sizing complete")
+        logger.info("Sizing complete (balance=$%.0f, L3 stop=%.1f%%, L4 stop=%.1f%%)",
+                    account_balance, l3_stop_pct*100, l4_stop_pct*100)
     except Exception as e:
         report["errors"].append(f"Sizing: {e}")
         logger.error("Sizing failed: %s", e)
