@@ -64,11 +64,12 @@ def fetch_live_data() -> dict:
     usdjpy = ctx.get("usdjpy")
 
     # Persisted session state (counters + USDJPY prior).
-    # Tolerant of legacy format: older writers stored l1_state as a bare string
-    # ("OFF") instead of a dict — treat that as empty (Codex N1).
+    # Stored under 'l1_counters' — 'l1_state' belongs to update_dashboard.py
+    # (risk-state string). Two writers, two keys, no collision (Codex N1).
     state = _load_state()
-    l1_state_raw = state.get("l1_state", {})
-    l1_state = l1_state_raw if isinstance(l1_state_raw, dict) else {}
+    l1_state = state.get("l1_counters", {})
+    if not isinstance(l1_state, dict):
+        l1_state = {}
 
     # USD/JPY delta vs prior run
     usdjpy_price = _safe_float(usdjpy, 150.0) if usdjpy is not None else None
@@ -118,8 +119,9 @@ def fetch_live_data() -> dict:
         "_usdjpy_price": usdjpy_price,
     }
 
-    # Persist updated state
-    state["l1_state"] = {
+    # Persist updated state (counters under l1_counters — never collide with
+    # update_dashboard's l1_state risk-state string)
+    state["l1_counters"] = {
         "usdjpy_price": usdjpy_price if usdjpy_price is not None else l1_state.get("usdjpy_price"),
         "mstr_sessions_below": mstr_sessions_below,
         "vix_sessions_above": vix_sessions_above,

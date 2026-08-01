@@ -1,12 +1,6 @@
 {
-  "timestamp": "2026-08-01T13:01:06.985208",
-  "regime": {
-    "regime": "BEAR",
-    "confidence": 0.6,
-    "leverage_multiplier": 0.5,
-    "size_reduction": 1.0,
-    "details": "BEAR regime: 3/5 bearish signals. Cycle=32.8, MVRV-Z=0.25, ETF=-61.5B"
-  },
+  "timestamp": "2026-08-01T14:00:42.768805",
+  "regime": null,
   "macro_risk": {
     "state": "OFF",
     "triggered_by": [
@@ -19,12 +13,12 @@
     "status": "inactive \u2014 Layer 1 is Risk ON"
   },
   "positioning": {
-    "action": "hold",
+    "action": "none",
     "tranche": null,
     "amount_usd": 0.0,
     "btc_amount": 0.0,
-    "details": "HOLD: Price 63104 not in any unfilled tranche range. Current position: 0.00000000 BTC.",
-    "total_allocation_pct": 0.4
+    "details": "Regime is TRANSITIONAL. No accumulation in non-bear regimes.",
+    "total_allocation_pct": 0.0
   },
   "swing": {
     "direction": "NONE",
@@ -51,9 +45,10 @@
     },
     "trade_type_allowed": true,
     "reasons": [
+      "No directional signal (direction=NONE)",
       "Checklist failed: adx_direction, cvd_invalidation"
     ],
-    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 5/7 passed. Reasons: Checklist failed: adx_direction, cvd_invalidation",
+    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 5/7 passed. Reasons: No directional signal (direction=NONE); Checklist failed: adx_direction, cvd_invalidation",
     "allocation_pct": 0.1,
     "heatmap_gate": {
       "go": true,
@@ -67,11 +62,11 @@
     }
   },
   "market_structure": {
-    "momentum": "neutral",
+    "momentum": "bearish",
     "leverage": "extreme",
     "funding_bias": "neutral",
-    "liquidation_risk": false,
-    "volume_profile": "unknown",
+    "liquidation_risk": true,
+    "volume_profile": "REJECTION_UP",
     "volatility_regime": "elevated",
     "realized_vol_1h_pct": 58.54,
     "sentiment": "fear",
@@ -81,13 +76,13 @@
     "black_swan_score": 0,
     "liquidity_health": "healthy",
     "liquidity_verdict": "HEALTHY",
-    "nearest_support": 0,
-    "nearest_resistance": 0,
-    "support_distance_pct": 0,
-    "resistance_distance_pct": 0,
-    "atr_1d_pct": 0.0,
-    "atr_1h_pct": 0.0,
-    "btc_equity_correlation": -0.5095,
+    "nearest_support": 62500.0,
+    "nearest_resistance": 66587.05,
+    "support_distance_pct": 0.92,
+    "resistance_distance_pct": 5.56,
+    "atr_1d_pct": 2.42,
+    "atr_1h_pct": 0.15,
+    "btc_equity_correlation": -0.4873,
     "correlation_signal": "divergence",
     "oi_change_24h_pct": 3.02,
     "oi_trend": "stable",
@@ -110,8 +105,10 @@
       "status": "No entry signal"
     }
   },
-  "overall_status": "OPERATIONAL",
-  "errors": [],
+  "overall_status": "DEGRADED",
+  "errors": [
+    "Layer 0: '>' not supported between instances of 'str' and 'float'"
+  ],
   "enriched_override": false,
   "enriched_risk": {
     "risk_level": "normal",
@@ -140,13 +137,13 @@
     "sth_net_realized_pnl": -260890.05
   },
   "summary": {
-    "regime": "BEAR",
+    "regime": "TRANSITIONAL",
     "risk_state": "OFF",
     "swing_direction": "NONE",
     "swing_allowed": false,
     "intraday_direction": "NONE",
     "intraday_allowed": false,
     "conflict_action": "allow",
-    "errors": 0
+    "errors": 1
   }
 }
