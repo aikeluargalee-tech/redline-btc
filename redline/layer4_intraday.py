@@ -357,6 +357,9 @@ def assess_intraday_trade(
     )
 
     reasons = []
+    # A NONE direction is a no-signal state — never a valid entry
+    if inputs.direction == IntradayDirection.NONE:
+        reasons.append("No directional signal (direction=NONE)")
     if not checklist_passed:
         reasons.append(f"Checklist failed: {', '.join(failed_items)}")
     if not trade_type_allowed:
@@ -365,7 +368,11 @@ def assess_intraday_trade(
             f"{inputs.direction.value} in {inputs.regime.value} regime"
         )
 
-    entry_allowed = checklist_passed and trade_type_allowed
+    entry_allowed = (
+        inputs.direction != IntradayDirection.NONE
+        and checklist_passed
+        and trade_type_allowed
+    )
 
     details = (
         f"Intraday {inputs.direction.value} ({inputs.trade_type.value}): "

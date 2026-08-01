@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-28T14:29:52.837033",
+  "timestamp": "2026-07-28T06:05:41.617380",
   "regime": {
     "regime": "TRANSITIONAL",
     "confidence": 0.8,
@@ -47,14 +47,14 @@
       "cvd_invalidation": false,
       "price_vs_liq_cluster": false,
       "vp_state": false,
-      "session_context": true,
+      "session_context": false,
       "layer3_alignment": true
     },
     "trade_type_allowed": true,
     "reasons": [
-      "Checklist failed: adx_direction, cvd_invalidation, price_vs_liq_cluster, vp_state"
+      "Checklist failed: adx_direction, cvd_invalidation, price_vs_liq_cluster, vp_state, session_context"
     ],
-    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 3/7 passed. Reasons: Checklist failed: adx_direction, cvd_invalidation, price_vs_liq_cluster, vp_state",
+    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 2/7 passed. Reasons: Checklist failed: adx_direction, cvd_invalidation, price_vs_liq_cluster, vp_state, session_context",
     "allocation_pct": 0.1,
     "heatmap_gate": {
       "go": true,

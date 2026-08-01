@@ -424,7 +424,10 @@ def run_daily_analysis(mock: bool = False) -> dict:
 
     # ----- Conflict Resolution -----
     try:
-        l2_dir = report.get("positioning", {}).get("action", "neutral")
+        l2_action = report.get("positioning", {}).get("action", "neutral")
+        # Map L2 positioning action → directional bias (accumulate in bear regime = long bias;
+        # the resolver only understands long/short/neutral)
+        l2_dir = "long" if l2_action == "accumulate" else "neutral"
         l3_dir = SwingDirection.NONE
         if swing_out:
             l3_dir = swing_out.direction if hasattr(swing_out, "direction") else SwingDirection.NONE

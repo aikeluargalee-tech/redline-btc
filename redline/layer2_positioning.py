@@ -127,7 +127,11 @@ def assess_positioning(
 
         if inputs.btc_price <= tranche.range_high and inputs.btc_price >= tranche.range_low:
             # Price is in this tranche's range
-            amount_usd = inputs.total_capital * tranche.allocation_pct
+            # Tranche allocation is a fraction OF the L2 bucket, not of total capital.
+            # L2 bucket = total_capital * l2.allocation_pct (e.g. 40%); each tranche
+            # (0.33) applies within that bucket → ~13% of total capital per tranche.
+            bucket = inputs.total_capital * l2["allocation_pct"]
+            amount_usd = bucket * tranche.allocation_pct
             btc_amount = amount_usd / inputs.btc_price if inputs.btc_price > 0 else 0.0
 
             return PositioningOutput(
@@ -138,7 +142,9 @@ def assess_positioning(
                 details=(
                     f"ACCUMULATE {tranche.name}: Price {inputs.btc_price:.0f} "
                     f"in range [{tranche.range_low:.0f}, {tranche.range_high:.0f}]. "
-                    f"Allocate ${amount_usd:.0f} ({tranche.allocation_pct*100:.0f}% of capital)."
+                    f"Allocate ${amount_usd:.0f} "
+                    f"({tranche.allocation_pct*100:.0f}% of {l2['allocation_pct']*100:.0f}% L2 bucket = "
+                    f"{tranche.allocation_pct*l2['allocation_pct']*100:.1f}% of capital)."
                 ),
                 total_allocation_pct=l2["allocation_pct"],
             )

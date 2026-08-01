@@ -36,19 +36,34 @@ def fetch_live_data() -> dict:
     ctx = p.get("context", {})
     ref = p.get("reference", {})
 
+    def _safe_float(val, default=0.0):
+        """Coerce N/A strings and None to numeric defaults."""
+        if val is None:
+            return default
+        if isinstance(val, str) and val.strip().upper() == "N/A":
+            return default
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+
     mvrv_z_raw = ref.get("cycle", {}).get("mvrv_z")
-    mvrv_z = float(mvrv_z_raw) if mvrv_z_raw is not None else 0.25
+    mvrv_z = _safe_float(mvrv_z_raw, 0.25)
     composite_raw = ref.get("cycle_composite")
-    composite = float(composite_raw) if composite_raw is not None else 25.0
+    composite = _safe_float(composite_raw, 25.0)
     skew = ref.get("options_skew_25d", -5.0)
-    etf_weekly = ctx.get("etf_flow_weekly", 0.0) or 0.0
-    premium = ctx.get("coinbase_premium", 0.0) or 0.0
-    etf_daily = ctx.get("etf_flow_daily", 0.0) or 0.0
+    # ETF flows arrive in MILLIONS from the packet (mock -9706.0 = -$9.7B);
+    # config thresholds are in BILLIONS (-1.0 / +0.5). Normalize once here.
+    etf_weekly_m = _safe_float(ctx.get("etf_flow_weekly"), 0.0)
+    etf_weekly = etf_weekly_m / 1000.0
+    premium = _safe_float(ctx.get("coinbase_premium"), 0.0)
+    etf_daily_m = _safe_float(ctx.get("etf_flow_daily"), 0.0)
+    etf_daily = etf_daily_m / 1000.0
 
     info = (
         f"Layer 0: MVRV-Z={mvrv_z:.3f}, "
         f"Cycle={composite:.1f}, "
-        f"ETF={etf_weekly / 1000:.2f}B, "
+        f"ETF={etf_weekly:.2f}B, "
         f"Premium={premium:.4f}%"
     )
     if brk:
@@ -62,7 +77,7 @@ def fetch_live_data() -> dict:
         "mvrv_z_score": mvrv_z,
         "cycle_composite": composite,
         "options_skew_30d": skew,
-        "etf_flows_weekly": etf_weekly,
+        "etf_flows_weekly": etf_weekly,  # billions (config-matched)
         "coinbase_premium_trend": premium,
         "btc_price": p.get("critical", {}).get("btc_price", p.get("header", {}).get("btc_price", 62000)),
         "_etf_daily": etf_daily,

@@ -18,6 +18,18 @@ PACKET_URL = (
     "pipeline-dashboard-v3/packet/data.json"
 )
 
+
+def _to_float(val, default=0.0):
+    """Coerce N/A strings and None to numeric defaults."""
+    if val is None:
+        return default
+    if isinstance(val, str) and val.strip().upper() == "N/A":
+        return default
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
 logger = logging.getLogger(__name__)
 
 
@@ -77,6 +89,7 @@ def fetch_enriched() -> dict:
     """
     packet = fetch_packet() or {}
     enriched_pkt = packet.get("enriched", {}) if packet else {}
+    critical_pkt = packet.get("critical", {}) if packet else {}
 
     if not enriched_pkt:
         logger.warning("Packet 'enriched' section missing — returning defaults")
@@ -122,6 +135,12 @@ def fetch_enriched() -> dict:
         "atr_1h_pct": enriched_pkt.get("atr_1h_pct", 0.0),
         "atr_1d_pct": enriched_pkt.get("atr_1d_pct", 0.0),
         "btc_price": enriched_pkt.get("btc_price", 0),
+
+        # L5 momentum inputs — from packet critical/enriched (were missing → L5 momentum always neutral)
+        "cvd_24h": _to_float(enriched_pkt.get("cvd_24h", critical_pkt.get("cvd_per_tf", {}).get("1D", 0))),
+        "taker_ratio_24h": _to_float(enriched_pkt.get("taker_ratio_24h", critical_pkt.get("taker_ratio_24h", 1.0)), 1.0),
+        "vp_state": enriched_pkt.get("vp_state", critical_pkt.get("vp_state", "unknown")),
+        "oi_absolute_usd_billions": _to_float(enriched_pkt.get("oi_absolute_usd_billions", critical_pkt.get("oi_absolute_usd_billions", 0))),
     }
 
     return enriched

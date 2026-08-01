@@ -78,3 +78,9 @@ class TestIntradayAllocation:
     def test_allocation_from_config(self):
         r = assess_intraday_trade(make_inputs())
         assert r.allocation_pct == 0.10
+
+    def test_direction_none_blocks_entry(self):
+        """Regression: direction=NONE (no signal) must never allow an entry."""
+        r = assess_intraday_trade(make_inputs(direction=IntradayDirection.NONE))
+        assert r.entry_allowed is False
+        assert any("NONE" in reason for reason in r.reasons)

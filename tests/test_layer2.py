@@ -27,6 +27,16 @@ class TestPositioningBearRegime:
         assert result.tranche is not None
         assert result.amount_usd > 0
 
+    def test_tranche_amount_scales_by_l2_bucket_not_total(self):
+        """Regression: tranche = % of L2 bucket (40%), not % of total capital.
+        One tranche on $100K must be ~$13K (13%), NOT $33K (33%)."""
+        result = assess_positioning(PositioningInput(
+            regime=Regime.BEAR, btc_price=59000,
+            total_capital=100_000, current_position=0.0, tranches_filled=[],
+        ))
+        assert 10_000 < result.amount_usd < 17_000, \
+            f"tranche amount {result.amount_usd} should be ~13% of capital (L2 40% × tranche 33%), not 33%"
+
     def test_hold_when_price_outside_tranches(self):
         """Price above all tranches → hold."""
         result = assess_positioning(PositioningInput(

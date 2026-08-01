@@ -1,19 +1,17 @@
 {
-  "timestamp": "2026-08-01T13:01:06.985208",
+  "timestamp": "2026-07-27T09:06:45.372679",
   "regime": {
     "regime": "BEAR",
     "confidence": 0.6,
     "leverage_multiplier": 0.5,
     "size_reduction": 1.0,
-    "details": "BEAR regime: 3/5 bearish signals. Cycle=32.8, MVRV-Z=0.25, ETF=-61.5B"
+    "details": "BEAR regime: 3/5 bearish signals. Cycle=25.0, MVRV-Z=0.25, ETF=-9706.0B"
   },
   "macro_risk": {
-    "state": "OFF",
-    "triggered_by": [
-      "US10Y 4.74% > 4.6%"
-    ],
+    "state": "ON",
+    "triggered_by": [],
     "can_reactivate": false,
-    "details": "Risk OFF triggered by: US10Y 4.74% > 4.6%"
+    "details": "Risk ON. No triggers fired."
   },
   "macro_short": {
     "status": "inactive \u2014 Layer 1 is Risk ON"
@@ -23,7 +21,7 @@
     "tranche": null,
     "amount_usd": 0.0,
     "btc_amount": 0.0,
-    "details": "HOLD: Price 63104 not in any unfilled tranche range. Current position: 0.00000000 BTC.",
+    "details": "HOLD: Price 61708 not in any unfilled tranche range. Current position: 0.00000000 BTC.",
     "total_allocation_pct": 0.4
   },
   "swing": {
@@ -31,18 +29,20 @@
     "entry_allowed": false,
     "reasons": [
       "4H structure not in clear trend",
+      "Not at daily S/R level",
+      "ADX 41.1 >= 35 (overextended)",
       "No clear directional alignment on 4H+1D"
     ],
-    "details": "Swing NONE: BLOCKED. 4H=neutral, 1D=neutral, ADX=0.0, CVD=neutral. Reasons: 4H structure not in clear trend; No clear directional alignment on 4H+1D",
+    "details": "Swing NONE: BLOCKED. 4H=neutral, 1D=bearish, ADX=41.1, CVD=negative. Reasons: 4H structure not in clear trend; Not at daily S/R level; ADX 41.1 >= 35 (overextended); No clear directional alignment on 4H+1D",
     "allocation_pct": 0.2
   },
   "intraday": {
-    "direction": "NONE",
-    "trade_type": "type_c",
+    "direction": "SHORT",
+    "trade_type": "type_a",
     "entry_allowed": false,
     "checklist_results": {
-      "adx_direction": false,
-      "mtf_alignment": true,
+      "adx_direction": true,
+      "mtf_alignment": false,
       "cvd_invalidation": false,
       "price_vs_liq_cluster": true,
       "vp_state": true,
@@ -51,9 +51,9 @@
     },
     "trade_type_allowed": true,
     "reasons": [
-      "Checklist failed: adx_direction, cvd_invalidation"
+      "Checklist failed: mtf_alignment, cvd_invalidation"
     ],
-    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 5/7 passed. Reasons: Checklist failed: adx_direction, cvd_invalidation",
+    "details": "Intraday SHORT (type_a): BLOCKED. Checklist: 5/7 passed. Reasons: Checklist failed: mtf_alignment, cvd_invalidation",
     "allocation_pct": 0.1,
     "heatmap_gate": {
       "go": true,
@@ -68,37 +68,37 @@
   },
   "market_structure": {
     "momentum": "neutral",
-    "leverage": "extreme",
+    "leverage": "normal",
     "funding_bias": "neutral",
-    "liquidation_risk": false,
+    "liquidation_risk": true,
     "volume_profile": "unknown",
     "volatility_regime": "elevated",
     "realized_vol_1h_pct": 58.54,
     "sentiment": "fear",
-    "fng_value": 27,
+    "fng_value": 26,
     "tail_risk": "low",
-    "crash_score": 0,
+    "crash_score": 1,
     "black_swan_score": 0,
     "liquidity_health": "healthy",
     "liquidity_verdict": "HEALTHY",
-    "nearest_support": 0,
-    "nearest_resistance": 0,
-    "support_distance_pct": 0,
-    "resistance_distance_pct": 0,
-    "atr_1d_pct": 0.0,
-    "atr_1h_pct": 0.0,
-    "btc_equity_correlation": -0.5095,
+    "nearest_support": 63750.0,
+    "nearest_resistance": 67377.7,
+    "support_distance_pct": 1.23,
+    "resistance_distance_pct": 4.39,
+    "atr_1d_pct": 2.36,
+    "atr_1h_pct": 0.18,
+    "btc_equity_correlation": -0.6655,
     "correlation_signal": "divergence",
-    "oi_change_24h_pct": 3.02,
+    "oi_change_24h_pct": -0.38,
     "oi_trend": "stable",
-    "cot_signal": "NEUTRAL",
-    "funding_signal": "NEUTRAL",
-    "taker_buy_ratio": 0.519
+    "cot_signal": "NEUTRAL \u2014 No extreme positioning",
+    "funding_signal": "POSITIVE",
+    "taker_buy_ratio": 0.496
   },
   "conflict_resolution": {
     "action": "allow",
     "size_multiplier": 1.0,
-    "allowed_trade_type": "type_c",
+    "allowed_trade_type": "type_a",
     "reasons": [],
     "details": "ALLOWED: No conflicts detected"
   },
@@ -116,35 +116,35 @@
   "enriched_risk": {
     "risk_level": "normal",
     "triggered_signals": [],
-    "crash_score": 0,
+    "crash_score": 1,
     "black_swan_score": 0,
     "liquidity_verdict": "HEALTHY",
-    "dxy": 99.8
+    "dxy": 101.465
   },
   "onchain_brk": {
-    "nupl": 0.16200000047683716,
-    "rhodl_ratio": 0.11169999837875366,
-    "lth_sopr_24h": 0.9456315284414919,
-    "sth_sopr_24h": 0.9956772006960265,
-    "sopr_24h": 0.9925047858118559,
-    "supply_in_profit_share": 51.40999984741211,
-    "mvrv": 1.1934000253677368,
-    "realized_price": 52821.68,
-    "puell_multiple": 0.7287999987602234,
-    "hash_rate_ehs": 1.0102753630199955e+21,
-    "hash_rate_drawdown_pct": -26.01999855041504,
-    "fee_rate_sat_vb": 1.199,
+    "nupl": 0.17980000376701355,
+    "rhodl_ratio": 0.08609999716281891,
+    "lth_sopr_24h": 1.9527882246657933,
+    "sth_sopr_24h": 1.0004913626570164,
+    "sopr_24h": 1.0102684474061978,
+    "supply_in_profit_share": 55.44000244140625,
+    "mvrv": 1.2194000482559204,
+    "realized_price": 52868.88,
+    "puell_multiple": 0.7378000020980835,
+    "hash_rate_ehs": 9.224253314530392e+20,
+    "hash_rate_drawdown_pct": -32.46000289916992,
+    "fee_rate_sat_vb": 1.004,
     "difficulty": 126231507121868.19,
-    "utxos_over_1y_sopr_24h": 1.111662452849352,
-    "lth_net_realized_pnl": -8295272.86,
-    "sth_net_realized_pnl": -260890.05
+    "utxos_over_1y_sopr_24h": 2.8884916376145116,
+    "lth_net_realized_pnl": -765386.29,
+    "sth_net_realized_pnl": -8352.4
   },
   "summary": {
     "regime": "BEAR",
-    "risk_state": "OFF",
+    "risk_state": "ON",
     "swing_direction": "NONE",
     "swing_allowed": false,
-    "intraday_direction": "NONE",
+    "intraday_direction": "SHORT",
     "intraday_allowed": false,
     "conflict_action": "allow",
     "errors": 0

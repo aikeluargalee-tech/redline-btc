@@ -116,6 +116,16 @@ def resolve_conflicts(
                 allowed_type = TradeType.TYPE_C
                 size_multiplier *= 0.5
 
+    # Rule 1c: Layer 2 > Layer 3 contradiction (higher layer wins direction)
+    if inputs.layer2_direction and inputs.layer2_direction != "neutral":
+        if (inputs.layer2_direction == "long" and inputs.layer3_direction == SwingDirection.SHORT) or \
+           (inputs.layer2_direction == "short" and inputs.layer3_direction == SwingDirection.LONG):
+            reasons.append("Rule 1c: L3 contradicts L2 direction — downgrade to scalp")
+            if action != ConflictAction.BLOCK:
+                action = ConflictAction.DOWNGRADE_TO_SCALP
+                allowed_type = TradeType.TYPE_C
+                size_multiplier *= 0.5
+
     # Rule 2: Lower layers use smaller size (don't stack)
     if inputs.layer3_direction != SwingDirection.NONE:
         if (inputs.layer3_direction == SwingDirection.LONG and inputs.layer4_direction == IntradayDirection.LONG) or \
