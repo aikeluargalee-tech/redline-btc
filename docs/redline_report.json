@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-02T02:00:41.717365",
+  "timestamp": "2026-08-02T03:00:18.145377",
   "regime": {
     "regime": "TRANSITIONAL",
     "confidence": 0.8,
@@ -45,16 +45,16 @@
       "mtf_alignment": true,
       "cvd_invalidation": false,
       "price_vs_liq_cluster": true,
-      "vp_state": false,
+      "vp_state": true,
       "session_context": true,
       "layer3_alignment": true
     },
     "trade_type_allowed": true,
     "reasons": [
       "No directional signal (direction=NONE)",
-      "Checklist failed: adx_direction, cvd_invalidation, vp_state"
+      "Checklist failed: adx_direction, cvd_invalidation"
     ],
-    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 4/7 passed. Reasons: No directional signal (direction=NONE); Checklist failed: adx_direction, cvd_invalidation, vp_state",
+    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 5/7 passed. Reasons: No directional signal (direction=NONE); Checklist failed: adx_direction, cvd_invalidation",
     "allocation_pct": 0.1,
     "heatmap_gate": {
       "go": true,
@@ -72,7 +72,7 @@
     "leverage": "normal",
     "funding_bias": "neutral",
     "liquidation_risk": true,
-    "volume_profile": "REJECTION_DOWN",
+    "volume_profile": "ACCEPTANCE",
     "volatility_regime": "elevated",
     "realized_vol_1h_pct": 58.54,
     "sentiment": "fear",
@@ -84,17 +84,17 @@
     "liquidity_verdict": "HEALTHY",
     "nearest_support": 62500.0,
     "nearest_resistance": 66587.05,
-    "support_distance_pct": 0.77,
-    "resistance_distance_pct": 5.72,
-    "atr_1d_pct": 2.45,
-    "atr_1h_pct": 0.28,
+    "support_distance_pct": 1.49,
+    "resistance_distance_pct": 4.95,
+    "atr_1d_pct": 2.49,
+    "atr_1h_pct": 0.34,
     "btc_equity_correlation": -0.709,
     "correlation_signal": "strong_divergence",
-    "oi_change_24h_pct": -0.79,
+    "oi_change_24h_pct": -0.46,
     "oi_trend": "stable",
     "cot_signal": "NEUTRAL",
     "funding_signal": "NEUTRAL",
-    "taker_buy_ratio": 0.501
+    "taker_buy_ratio": 0.511
   },
   "conflict_resolution": {
     "action": "allow",
