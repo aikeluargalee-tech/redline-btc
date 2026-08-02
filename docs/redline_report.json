@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-08-02T03:00:18.145377",
+  "timestamp": "2026-08-02T15:06:33.301218",
   "regime": {
     "regime": "TRANSITIONAL",
-    "confidence": 0.8,
+    "confidence": 1.0,
     "leverage_multiplier": 1.0,
     "size_reduction": 0.75,
-    "details": "TRANSITIONAL regime: 0 bull / 1 bear signals. Reduced size, higher conviction required."
+    "details": "TRANSITIONAL regime: 0 bull / 0 bear signals. Reduced size, higher conviction required."
   },
   "macro_risk": {
     "state": "OFF",
@@ -84,17 +84,17 @@
     "liquidity_verdict": "HEALTHY",
     "nearest_support": 62500.0,
     "nearest_resistance": 66587.05,
-    "support_distance_pct": 1.49,
-    "resistance_distance_pct": 4.95,
+    "support_distance_pct": 0.98,
+    "resistance_distance_pct": 5.5,
     "atr_1d_pct": 2.49,
-    "atr_1h_pct": 0.34,
-    "btc_equity_correlation": -0.709,
-    "correlation_signal": "strong_divergence",
-    "oi_change_24h_pct": -0.46,
+    "atr_1h_pct": 0.37,
+    "btc_equity_correlation": -0.6815,
+    "correlation_signal": "divergence",
+    "oi_change_24h_pct": -0.1,
     "oi_trend": "stable",
     "cot_signal": "NEUTRAL",
     "funding_signal": "NEUTRAL",
-    "taker_buy_ratio": 0.511
+    "taker_buy_ratio": 0.509
   },
   "conflict_resolution": {
     "action": "allow",
@@ -120,25 +120,25 @@
     "crash_score": 0,
     "black_swan_score": 0,
     "liquidity_verdict": "HEALTHY",
-    "dxy": 99.8
+    "dxy": 99.803
   },
   "onchain_brk": {
-    "nupl": 0.15950000286102295,
-    "rhodl_ratio": 0.1324000060558319,
-    "lth_sopr_24h": 0.8218985772938598,
-    "sth_sopr_24h": 0.9970379059532025,
-    "sopr_24h": 0.9797392496153109,
-    "supply_in_profit_share": 50.340003967285156,
-    "mvrv": 1.1898000240325928,
-    "realized_price": 52777.65,
-    "puell_multiple": 0.7267000079154968,
-    "hash_rate_ehs": 1.0291003697843431e+21,
-    "hash_rate_drawdown_pct": -24.639999389648438,
-    "fee_rate_sat_vb": 0.5,
+    "nupl": 0.16279999911785126,
+    "rhodl_ratio": 0.13339999318122864,
+    "lth_sopr_24h": 0.822543205655356,
+    "sth_sopr_24h": 0.9984762415746775,
+    "sopr_24h": 0.9813974259436322,
+    "supply_in_profit_share": 51.59000015258789,
+    "mvrv": 1.194599986076355,
+    "realized_price": 52777.12,
+    "puell_multiple": 0.7301999926567078,
+    "hash_rate_ehs": 1.0667503833130387e+21,
+    "hash_rate_drawdown_pct": -21.889999389648438,
+    "fee_rate_sat_vb": 1.228,
     "difficulty": 126231507121868.19,
-    "utxos_over_1y_sopr_24h": 0.8976178357171319,
-    "lth_net_realized_pnl": -444315.37,
-    "sth_net_realized_pnl": 228672.89
+    "utxos_over_1y_sopr_24h": 0.9071580814091106,
+    "lth_net_realized_pnl": -3204619.55,
+    "sth_net_realized_pnl": 1194169.77
   },
   "summary": {
     "regime": "TRANSITIONAL",
