@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-01T14:45:05.677920",
+  "timestamp": "2026-08-02T01:54:16.545779",
   "regime": {
     "regime": "TRANSITIONAL",
     "confidence": 0.8,
@@ -45,16 +45,16 @@
       "mtf_alignment": true,
       "cvd_invalidation": false,
       "price_vs_liq_cluster": true,
-      "vp_state": true,
+      "vp_state": false,
       "session_context": true,
       "layer3_alignment": true
     },
     "trade_type_allowed": true,
     "reasons": [
       "No directional signal (direction=NONE)",
-      "Checklist failed: adx_direction, cvd_invalidation"
+      "Checklist failed: adx_direction, cvd_invalidation, vp_state"
     ],
-    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 5/7 passed. Reasons: No directional signal (direction=NONE); Checklist failed: adx_direction, cvd_invalidation",
+    "details": "Intraday NONE (type_c): BLOCKED. Checklist: 4/7 passed. Reasons: No directional signal (direction=NONE); Checklist failed: adx_direction, cvd_invalidation, vp_state",
     "allocation_pct": 0.1,
     "heatmap_gate": {
       "go": true,
@@ -69,10 +69,10 @@
   },
   "market_structure": {
     "momentum": "bearish",
-    "leverage": "elevated",
+    "leverage": "normal",
     "funding_bias": "neutral",
     "liquidation_risk": true,
-    "volume_profile": "ACCEPTANCE",
+    "volume_profile": "REJECTION_DOWN",
     "volatility_regime": "elevated",
     "realized_vol_1h_pct": 58.54,
     "sentiment": "fear",
@@ -84,17 +84,17 @@
     "liquidity_verdict": "HEALTHY",
     "nearest_support": 62500.0,
     "nearest_resistance": 66587.05,
-    "support_distance_pct": 0.96,
-    "resistance_distance_pct": 5.51,
-    "atr_1d_pct": 2.42,
-    "atr_1h_pct": 0.15,
-    "btc_equity_correlation": -0.4888,
-    "correlation_signal": "divergence",
-    "oi_change_24h_pct": 2.67,
+    "support_distance_pct": 0.77,
+    "resistance_distance_pct": 5.72,
+    "atr_1d_pct": 2.45,
+    "atr_1h_pct": 0.28,
+    "btc_equity_correlation": -0.709,
+    "correlation_signal": "strong_divergence",
+    "oi_change_24h_pct": -0.79,
     "oi_trend": "stable",
     "cot_signal": "NEUTRAL",
     "funding_signal": "NEUTRAL",
-    "taker_buy_ratio": 0.519
+    "taker_buy_ratio": 0.501
   },
   "conflict_resolution": {
     "action": "allow",
@@ -123,22 +123,22 @@
     "dxy": 99.8
   },
   "onchain_brk": {
-    "nupl": 0.16200000047683716,
-    "rhodl_ratio": 0.11169999837875366,
-    "lth_sopr_24h": 0.9456315284414919,
-    "sth_sopr_24h": 0.9956772006960265,
-    "sopr_24h": 0.9925047858118559,
-    "supply_in_profit_share": 51.40999984741211,
-    "mvrv": 1.1934000253677368,
-    "realized_price": 52821.68,
-    "puell_multiple": 0.7287999987602234,
-    "hash_rate_ehs": 1.0102753630199955e+21,
-    "hash_rate_drawdown_pct": -26.01999855041504,
-    "fee_rate_sat_vb": 1.199,
+    "nupl": 0.15950000286102295,
+    "rhodl_ratio": 0.1324000060558319,
+    "lth_sopr_24h": 0.8218985772938598,
+    "sth_sopr_24h": 0.9970379059532025,
+    "sopr_24h": 0.9797392496153109,
+    "supply_in_profit_share": 50.340003967285156,
+    "mvrv": 1.1898000240325928,
+    "realized_price": 52777.65,
+    "puell_multiple": 0.7267000079154968,
+    "hash_rate_ehs": 1.0291003697843431e+21,
+    "hash_rate_drawdown_pct": -24.639999389648438,
+    "fee_rate_sat_vb": 0.5,
     "difficulty": 126231507121868.19,
-    "utxos_over_1y_sopr_24h": 1.111662452849352,
-    "lth_net_realized_pnl": -8295272.86,
-    "sth_net_realized_pnl": -260890.05
+    "utxos_over_1y_sopr_24h": 0.8976178357171319,
+    "lth_net_realized_pnl": -444315.37,
+    "sth_net_realized_pnl": 228672.89
   },
   "summary": {
     "regime": "TRANSITIONAL",
